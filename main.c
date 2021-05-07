@@ -2,51 +2,62 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <stdbool.h>
 
 //#define COUNTER_FILE "/tmp/counter.txt"
-#define COUNTER_FILE "/mnt/b/C++/messengers/counter.txt"
+#define COUNTER_FILE "./counter.txt"
+
+bool is_empty(FILE *file)
+{
+    fseek(file, 0, SEEK_END);
+    return (ftell(file) == 0);
+}
 
 void * threadFunction(void * arg)
 {
-    unsigned long long k;
-    char c = 'A';
+    unsigned long long k = 0;
 
-
-    //open the file
+    //checking if the file exists
     FILE *file = fopen(COUNTER_FILE, "r+");
     if (file == NULL)
     {
-        fprintf(stderr, "Error opening the file");
-        exit(1);
+        fprintf(stderr, "File %s does not exists\n", COUNTER_FILE);
+        printf("Creating the file %s\n", COUNTER_FILE);
+        file = fopen(COUNTER_FILE, "w+");
+        fprintf(file, "%lld\n", k);
+        if (file == NULL)
+        {
+            fprintf(stderr, "Error creating the file %s\n", COUNTER_FILE);
+        }
     }
-    printf("Created the file %s\n", COUNTER_FILE);
-
-    //checking if the file exists
-    if ( !fread(&c, sizeof(c), 1, file) )
+    else if (is_empty(file))
     {
-        printf("File is empty!!!\n");
-
+        printf("File %s is empty\n", COUNTER_FILE);
+        fprintf(file, "%lld", k);
+        rewind(file);
     }
-
-
     int n = 10;
     while (n--)
     {
         //read current value
-        fread(&c, sizeof(c), 1, file);
-        //fread(buffer, sizeof(*buffer), 32, file);
-        //sprintf(k_string,"%lld", k);
-        printf("Value read: %c\n", c);
+        rewind(file);
+        if (!fread(&k, sizeof(k), 1, file))
+        {
+            fprintf(stderr, "Error reading from file\n");
+        }
+
+        printf("Value read: %lld\n", k);
+        rewind(file);
+
         //increment value
-        c++;
+        k++;
 
         //write new value
-        //fwrite(&c, sizeof(c), 1, file);
-        fprintf(file, "%c\n", c);
-        printf("Value written: %c\n", c);
-
+        fprintf(file, "%lld", k);
+        printf("Value written: %lld\n", k);
         sleep(1);
     }
+
     pthread_exit(NULL);
     fclose(file);
 
