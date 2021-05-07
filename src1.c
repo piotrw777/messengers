@@ -9,6 +9,7 @@
 #include "src1.h"
 #include "config.h"
 
+extern char message[LENGTH];
 
 double drand(void) {
     double d = rand()/(double) RAND_MAX;

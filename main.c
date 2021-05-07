@@ -10,9 +10,7 @@
 
 FILE *file;
 int prog_nr;
-
-
-
+char message[LENGTH];
 
 void * counter(void * arg)
 {
@@ -63,16 +61,30 @@ void * counter(void * arg)
     pthread_exit(NULL);
     fclose(file);
 }
+void * reader(void *arg)
+{
 
+
+
+}
+
+void * writer(void *arg)
+{
+
+
+
+}
 int main()
 {
+
     if (other_instance_running())
     {
         printf("Another instance is running\n");
+        prog_nr = 2;
         printf("Closing program\n");
         return 1;
     }
-
+    prog_nr = 1;
     printf("Create a thread\n");
     pthread_t w;
     pthread_create(&w, NULL, counter, NULL);
