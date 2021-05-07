@@ -2,3 +2,5 @@
 counter.txt
 prog
 main.o
+*.o
+prog2

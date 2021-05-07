@@ -5,45 +5,16 @@
 #include <pthread.h>
 #include <stdbool.h>
 
-//#define COUNTER_FILE "/tmp/counter.txt"
-#define COUNTER_FILE "./counter.txt"
+#include "src1.h"
+#include "config.h"
 
 FILE *file;
+int prog_nr;
 
-bool is_empty(FILE *file)
-{
-    fseek(file, 0, SEEK_END);
-    return (ftell(file) == 0);
-}
 
-bool other_instance_running()
-{
-    unsigned long long k;
-    unsigned long long before, after;
-    //opening the file
-    FILE *file = fopen(COUNTER_FILE, "r");
 
-    if (file == NULL)
-    {
-        return false;
-    }
 
-    if (!fread(&k, sizeof(k), 1, file))
-    {
-        fprintf(stderr, "Error reading from file\n");
-    }
-    before = k;
-    sleep(3);
-    rewind(file);
-    if (!fread(&k, sizeof(k), 1, file))
-    {
-        fprintf(stderr, "Error reading from file\n");
-    }
-    after = k;
-    return (after != before);
-}
-
-void * threadFunction(void * arg)
+void * counter(void * arg)
 {
     unsigned long long k = 123;
 
@@ -91,7 +62,6 @@ void * threadFunction(void * arg)
 
     pthread_exit(NULL);
     fclose(file);
-
 }
 
 int main()
@@ -105,6 +75,6 @@ int main()
 
     printf("Create a thread\n");
     pthread_t w;
-    pthread_create(&w, NULL, threadFunction, NULL);
+    pthread_create(&w, NULL, counter, NULL);
     pthread_join(w, NULL);
 }
