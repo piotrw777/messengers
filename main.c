@@ -1,11 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <time.h>
 #include <pthread.h>
 #include <stdbool.h>
 
 //#define COUNTER_FILE "/tmp/counter.txt"
 #define COUNTER_FILE "./counter.txt"
+
+FILE *file;
 
 bool is_empty(FILE *file)
 {
@@ -13,29 +16,57 @@ bool is_empty(FILE *file)
     return (ftell(file) == 0);
 }
 
+bool other_instance_running()
+{
+    unsigned long long k;
+    unsigned long long before, after;
+    //opening the file
+    FILE *file = fopen(COUNTER_FILE, "r");
+
+    if (file == NULL)
+    {
+        return false;
+    }
+
+    if (!fread(&k, sizeof(k), 1, file))
+    {
+        fprintf(stderr, "Error reading from file\n");
+    }
+    before = k;
+    sleep(3);
+    rewind(file);
+    if (!fread(&k, sizeof(k), 1, file))
+    {
+        fprintf(stderr, "Error reading from file\n");
+    }
+    after = k;
+    return (after != before);
+}
+
 void * threadFunction(void * arg)
 {
-    unsigned long long k = 0;
+    unsigned long long k = 123;
 
     //checking if the file exists
-    FILE *file = fopen(COUNTER_FILE, "r+");
+    file = fopen(COUNTER_FILE, "rb+");
     if (file == NULL)
     {
         fprintf(stderr, "File %s does not exists\n", COUNTER_FILE);
         printf("Creating the file %s\n", COUNTER_FILE);
-        file = fopen(COUNTER_FILE, "w+");
-        fprintf(file, "%lld\n", k);
+        file = fopen(COUNTER_FILE, "wb+");
         if (file == NULL)
         {
             fprintf(stderr, "Error creating the file %s\n", COUNTER_FILE);
         }
+        fwrite(&k, sizeof(k), 1, file);
     }
     else if (is_empty(file))
     {
         printf("File %s is empty\n", COUNTER_FILE);
-        fprintf(file, "%lld", k);
+        fwrite(&k, sizeof(k), 1, file);
         rewind(file);
     }
+
     int n = 10;
     while (n--)
     {
@@ -53,7 +84,7 @@ void * threadFunction(void * arg)
         k++;
 
         //write new value
-        fprintf(file, "%lld", k);
+        fwrite(&k, sizeof(k), 1, file);
         printf("Value written: %lld\n", k);
         sleep(1);
     }
@@ -65,9 +96,15 @@ void * threadFunction(void * arg)
 
 int main()
 {
-    int start = 5;
+    if (other_instance_running())
+    {
+        printf("Another instance is running\n");
+        printf("Closing program\n");
+        return 1;
+    }
+
     printf("Create a thread\n");
     pthread_t w;
-    pthread_create(&w, NULL, threadFunction, (void *) &start);
+    pthread_create(&w, NULL, threadFunction, NULL);
     pthread_join(w, NULL);
 }
