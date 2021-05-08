@@ -56,7 +56,7 @@ char message[LENGTH];
 
 void * counter(void * arg)
 {
-    int sleep_time = 975164;
+    int sleep_time = 150000;
     FILE *file = (FILE *) arg;
     unsigned long k = 1;
 
@@ -66,7 +66,7 @@ void * counter(void * arg)
         if (is_empty(file))
         {
             fwrite(&k, sizeof(k), 1, file);
-            printf("Value written: %lu\n", k);
+            //printf("Value written: %lu\n", k);
             usleep(sleep_time);
             k++;
         }
@@ -107,7 +107,6 @@ void * check_friend(void * arg)
     {
         //open the counter file of the friend if it's not opened
         file = fopen(COUNTER_FILENAMES[friend_nr], "rb");
-
         if (file == NULL)
         {
             fprintf(stderr, "File %s not opened\n",COUNTER_FILENAMES[friend_nr]);
@@ -115,39 +114,48 @@ void * check_friend(void * arg)
             continue;
         }
 
-        //rewind(file);
         if (!fread(&k, sizeof(k), 1, file))
         {
             fprintf(stderr, "Error reading from file (check_friend)\n");
-            continue;
+            //continue;
         }
-
+        fclose(file);
         before = k;
+        //printf("Check friend before: %lu\n", k);
+
         sleep(1);
 
-        //rewind(file);
-        if (!fread(&k, sizeof(k), 1, file))
+        file = fopen(COUNTER_FILENAMES[friend_nr], "rb");
+        if (file == NULL)
         {
-            fprintf(stderr, "Error reading from file (check_friend)\n");
+            fprintf(stderr, "File %s not opened\n",COUNTER_FILENAMES[friend_nr]);
+            sleep(1);
             continue;
         }
 
+        if (!fread(&k, sizeof(k), 1, file))
+        {
+            fprintf(stderr, "Error reading from file (check_friend)\n");
+            //continue;
+        }
+        fclose(file);
         after = k;
+        //printf("Check friend after: %lu\n", k);
 
         if (before != after && status == INACTIVE)
         {
             printf(GREEN"Other program is running!!!\n"RESET);
-            friend_status = ACTIVE;
-            status = ACTIVE;
+            friend_status = status = ACTIVE;
         }
+
         else if (before == after && status == ACTIVE)
         {
             printf(RED"Other program stopped!!!\n"RESET);
-            friend_status = INACTIVE;
-            status = ACTIVE;
+            friend_status = status = INACTIVE;
         }
+
     }
-    fclose(file);
+
     pthread_exit(NULL);
     return NULL;
 }

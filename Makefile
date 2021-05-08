@@ -1,5 +1,5 @@
 CC := gcc
-CFLAGS := -Wall -pthread -std=c99 -Wextra 
+CFLAGS := -Wall -pthread -std=c11 -Wextra 
 
 LIBS := -lm
 OUT := prog
