@@ -2,6 +2,9 @@
 #define CONFIG_H
 #define LINUX 0
 #define LENGTH  11
+#define TIMESTAMP_LENGTH 18
+#define CSV_ENTRIES 2
+#define CSV_ENTRY_SIZE 30
 
 #if(LINUX == 0)
 #define COUNTER_FILENAME1 "B:\\C++\\counter1.txt"

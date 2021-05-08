@@ -60,118 +60,130 @@ bool other_instance_running(int *prog)
     unsigned long  before1, after1;
     unsigned long  before2, after2;
 
-    //opening the files
-    FILE *file1 = fopen(COUNTER_FILENAME1, "rb");
-    FILE *file2 = fopen(COUNTER_FILENAME2, "rb");
-
-    //counter files does not exist
-    if (file1 == NULL && file2 == NULL)
+    while (true)
     {
-        *prog = 1;
-        return false;
-    }
+        //opening the files
+        FILE *file1 = fopen(COUNTER_FILENAME1, "rb");
+        FILE *file2 = fopen(COUNTER_FILENAME2, "rb");
 
-    //second file does not exists
-    if (file2 == NULL)
-    {
+        //counter files does not exist
+        if (file1 == NULL && file2 == NULL)
+        {
+            *prog = 1;
+            return false;
+        }
+
+        //second file does not exists
+        if (file2 == NULL)
+        {
+            if (!fread(&k1, sizeof(k1), 1, file1))
+            {
+                fprintf(stderr, "Error reading from file (other_instance_running)\n");
+                continue;
+            }
+
+            before1 = k1;
+            sleep(1);
+            rewind(file1);
+
+            if (!fread(&k1, sizeof(k1), 1, file1))
+            {
+                fprintf(stderr, "Error reading from file (other_instance_running)\n");
+                continue;
+            }
+
+            after1 = k1;
+            if (before1 != after1)
+            {
+                *prog = 2;
+                return true;
+            }
+            *prog = 1;
+            return false;
+        }
+
+        //first file does not exist
+        if (file1 == NULL)
+        {
+            if (!fread(&k2, sizeof(k2), 1, file2))
+            {
+                fprintf(stderr, "Error reading from file (other_instance_running)\n");
+                continue;
+            }
+
+            before2 = k2;
+            sleep(1);
+            rewind(file2);
+
+            if (!fread(&k2, sizeof(k2), 1, file2))
+            {
+                fprintf(stderr, "Error reading from file (other_instance_running)\n");
+                continue;
+            }
+
+            after2 = k2;
+            if (before2 != after2)
+            {
+                *prog = 1;
+                return true;
+            }
+            *prog = 2;
+            return false;
+        }
+        //read values
         if (!fread(&k1, sizeof(k1), 1, file1))
         {
             fprintf(stderr, "Error reading from file (other_instance_running)\n");
+            continue;
+        }
+
+        if (!fread(&k2, sizeof(k2), 1, file2))
+        {
+            fprintf(stderr, "Error reading from file (other_instance_running)\n");
+            continue;
         }
 
         before1 = k1;
-        sleep(1);
-        rewind(file1);
+        before2 = k2;
 
+        sleep(1);
+
+        rewind(file1);
+        rewind(file2);
+
+        //read values again
         if (!fread(&k1, sizeof(k1), 1, file1))
         {
             fprintf(stderr, "Error reading from file (other_instance_running)\n");
+            continue;
+        }
+
+        if (!fread(&k2, sizeof(k2), 1, file2))
+        {
+            fprintf(stderr, "Error reading from file (other_instance_running)\n");
+            continue;
         }
 
         after1 = k1;
+        after2 = k2;
+
         if (before1 != after1)
         {
             *prog = 2;
             return true;
         }
-        *prog = 1;
-        return false;
-    }
-
-    //first file does not exist
-    if (file1 == NULL)
-    {
-        if (!fread(&k2, sizeof(k2), 1, file2))
-        {
-            fprintf(stderr, "Error reading from file (other_instance_running)\n");
-        }
-
-        before2 = k2;
-        sleep(1);
-        rewind(file2);
-
-        if (!fread(&k2, sizeof(k2), 1, file2))
-        {
-            fprintf(stderr, "Error reading from file (other_instance_running)\n");
-        }
-
-        after2 = k2;
         if (before2 != after2)
         {
             *prog = 1;
             return true;
         }
-        *prog = 2;
-        return false;
-    }
-    //read values
-    int r = fread(&k1, sizeof(k1), 1, file1);
-    if (r == 0)
-    {
-        fprintf(stderr, "Error reading from file (other_instance_running)\n");
+        else
+        {
+            *prog = 1;
+            return false;
+        }
 
     }
 
-    if (!fread(&k2, sizeof(k2), 1, file2))
-    {
-        fprintf(stderr, "Error reading from file (other_instance_running)\n");
-    }
 
-    before1 = k1;
-    before2 = k2;
-
-    sleep(1);
-
-    rewind(file1);
-    rewind(file2);
-
-    //read values again
-    if (!fread(&k1, sizeof(k1), 1, file1))
-    {
-        fprintf(stderr, "Error reading from file (other_instance_running)\n");
-    }
-
-    if (!fread(&k2, sizeof(k2), 1, file2))
-    {
-        fprintf(stderr, "Error reading from file (other_instance_running)\n");
-    }
-
-    after1 = k1;
-    after2 = k2;
-
-    if (before1 != after1)
-    {
-        *prog = 2;
-        return true;
-    }
-    if (before2 != after2)
-    {
-        *prog = 1;
-        return true;
-    }
-    else
-    {
-        *prog = 1;
-        return false;
-    }
 }

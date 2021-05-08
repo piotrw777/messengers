@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <time.h>
+#include <sys/time.h>
 #include <pthread.h>
 #include <stdbool.h>
 
@@ -46,69 +47,19 @@ enum FRIEND_STATUS {INACTIVE, ACTIVE};
 
 int prog_nr;
 
-bool friend_status;
+static bool friend_status;
 
-bool QUIT = false;
+static bool QUIT = false;
 
 char message[LENGTH];
-/*
-void * counter(void * arg)
-{
-    unsigned long k = 123;
 
-    //checking if the file exists
-    file = fopen(COUNTER_FILE, "rb+");
-    if (file == NULL)
-    {
-        fprintf(stderr, "File %s does not exists\n", COUNTER_FILE);
-        printf("Creating the file %s\n", COUNTER_FILE);
-        file = fopen(COUNTER_FILE, "wb+");
-        if (file == NULL)
-        {
-            fprintf(stderr, "Error creating the file %s\n", COUNTER_FILE);
-        }
-        fwrite(&k, sizeof(k), 1, file);
-    }
-    else if (is_empty(file))
-    {
-        printf("File %s is empty\n", COUNTER_FILE);
-        fwrite(&k, sizeof(k), 1, file);
-        rewind(file);
-    }
-
-    int n = 10;
-    while (n--)
-    {
-        //read current value
-        rewind(file);
-        if (!fread(&k, sizeof(k), 1, file))
-        {
-            fprintf(stderr, "Error reading from file\n");
-        }
-
-        printf("Value read: %lu\n", k);
-        rewind(file);
-
-        //increment value
-        k++;
-
-        //write new value
-        fwrite(&k, sizeof(k), 1, file);
-        printf("Value written: %lu\n", k);
-        sleep(1);
-    }
-
-    pthread_exit(NULL);
-    fclose(file);
-}
-*/
 void * counter(void * arg)
 {
     int sleep_time = 1e5;
     FILE *file = (FILE *) arg;
     unsigned long k = 1;
 
-    int n = 1e5;
+    int n = 975164;
     while (n--)
     {
         if (is_empty(file))
@@ -145,13 +96,13 @@ void * counter(void * arg)
 
 void * check_friend(void * arg)
 {
-
-    bool status = friend_status;
     unsigned long k;
     unsigned long before, after;
     int friend_nr = 3 - prog_nr;
-    FILE *file;
+    bool status = INACTIVE;
 
+
+    FILE *file;
 
     while (QUIT == false)
     {
@@ -160,34 +111,37 @@ void * check_friend(void * arg)
         if (file == NULL)
         {
             fprintf(stderr, "File %s not opened ",COUNTER_FILENAMES[friend_nr]);
+            continue;
         }
 
         rewind(file);
         if (!fread(&k, sizeof(k), 1, file))
         {
             fprintf(stderr, "Error reading from file (check_friend)\n");
+            continue;
         }
 
         before = k;
         sleep(1);
-        rewind(file);
 
+        rewind(file);
         if (!fread(&k, sizeof(k), 1, file))
         {
             fprintf(stderr, "Error reading from file (check_friend)\n");
+            continue;
         }
 
         after = k;
+
         if (before != after && status == INACTIVE)
         {
             printf(GREEN"Other program is running!!!\n"RESET);
-            status = ACTIVE;
-
+            friend_status = status = ACTIVE;
         }
         else if (before == after && status == ACTIVE)
         {
             printf(RED"Other program stopped!!!\n"RESET);
-            status = INACTIVE;
+            friend_status = status = INACTIVE;
         }
     }
 
@@ -195,23 +149,44 @@ void * check_friend(void * arg)
     return NULL;
 }
 
-
-//void * reader(void *arg)
+//void * read_messages(void *arg)
 //{
 
 //    return NULL;
 
 
-
 //}
 
-//void * writer(void *arg)
-//{
-//    return NULL;
+unsigned long long get_timestamp()
+{
+    struct timeval te;
+    gettimeofday(&te, NULL); // get current time
+    unsigned long long microseconds = te.tv_sec * 10000000LL + te.tv_usec * 10 + prog_nr;
+    return microseconds;
+}
 
+void * write_messages(void *arg)
+{
+    static char timestamp_str[TIMESTAMP_LENGTH + 1];
 
+    while (QUIT == false)
+    {
+        //create string from timestamp
+        sprintf(timestamp_str, "%018lli", get_timestamp());
 
-//}
+        //generate message
+        create_random_message();
+        printf(ORANGE"Message generated: %s\n"RESET, message);
+
+        //write entry
+        fprintf(SENT_FILE, "%s,%s\n", timestamp_str, message);
+
+        sleep(1);
+    }
+    pthread_exit(NULL);
+    return NULL;
+}
+
 void introduce()
 {
     printf("I am program nr %d\n", prog_nr);
@@ -219,7 +194,6 @@ void introduce()
 
 int main()
 {
-    bool friend_status;
     //determine the number of the program
     if ((friend_status = other_instance_running(&prog_nr)))
     {
@@ -227,9 +201,10 @@ int main()
     }
 
     introduce();
+
     //opening the files
     COUNTER_FILE = fopen(COUNTER_FILENAMES[prog_nr], "wb+");
-    SENT_FILE = fopen(SENT_FILENAMES[prog_nr], "ab");
+    SENT_FILE = fopen(SENT_FILENAMES[prog_nr], "a");
     RECEIVED_FILE = fopen(RECEIVED_FILENAMES[prog_nr], "ab");
     QUEUED_FILE = fopen(QUEUED_FILENAMES[prog_nr], "ab+");
 
@@ -241,8 +216,12 @@ int main()
     pthread_t check_friend_thread;
     pthread_create(&check_friend_thread, NULL, check_friend, (void *) &prog_nr);
 
+    //create sender thread
+    pthread_t sender;
+    pthread_create(&sender, NULL, write_messages, NULL);
+
     //joining threads
     pthread_join(counting_thread, NULL);
     pthread_join(check_friend_thread, NULL);
-
+    pthread_join(sender, NULL);
 }
