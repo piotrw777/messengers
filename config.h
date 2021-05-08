@@ -1,12 +1,48 @@
 #ifndef CONFIG_H
 #define CONFIG_H
-
+#define LINUX 0
 #define LENGTH  11
-#define COUNTER_FILE "./counter.txt"
-#define SENT_MSGS1 "./1_sent.txt"
-#define RECEIVED_MSGS1 "./1_received.txt"
-#define SENT_MSGS2 "./2_sent.txt"
-#define RECEIVED_MSGS2 "./2_received.txt"
+
+#if(LINUX == 0)
+#define COUNTER_FILENAME1 "B:\\C++\\counter1.txt"
+#define COUNTER_FILENAME2 "B:\\C++\\counter2.txt"
+
+#define SENT_FILENAME1 "B:\\C++\\sent1.csv"
+#define RECEIVED_FILENAME1 "B:\\C++\\received1.csv"
+
+#define SENT_FILENAME2 "B:\\C++\\sent2.csv"
+#define RECEIVED_FILENAME2 "B:\\C++\\received2.csv"
+
+#define QUEUED_FILENAME1 "B:\\C++\\queued1.csv"
+#define QUEUED_FILENAME2 "B:\\C++\\queued2.csv"
+#else
+#define COUNTER_FILENAME1 "./counter1.txt"
+#define COUNTER_FILENAME2 "./counter2.txt"
+
+#define SENT_FILENAME1 "./sent1.csv"
+#define RECEIVED_FILENAME1 "./received1.csv"
+
+#define SENT_FILENAME2 "./sent2.csv"
+#define RECEIVED_FILENAME2 "./received2.csv"
+
+#define QUEUED_FILENAME1 "./queued1.csv"
+#define QUEUED_FILENAME2 "./queued2.csv"
+
+#endif
+
+
+
+//#define COUNTER_FILENAME1 "./counter1.txt"
+//#define COUNTER_FILENAME2 "./counter2.txt"
+
+//#define SENT_FILENAME1 "./sent1.csv"
+//#define RECEIVED_FILENAME1 "./received1.csv"
+
+//#define SENT_FILENAME2 "./sent2.csv"
+//#define RECEIVED_FILENAME2 "./received2.csv"
+
+//#define QUEUED_FILENAME1 "./queued1.csv"
+//#define QUEUED_FILENAME2 "./queued2.csv"
 
 #define RESET "\x1b[0m"
 #define RED "\x1b[31m"

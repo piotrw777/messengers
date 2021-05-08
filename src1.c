@@ -5,19 +5,19 @@
 #include <pthread.h>
 #include <stdbool.h>
 
-
 #include "src1.h"
 #include "config.h"
 
 extern char message[LENGTH];
 
-double drand(void) {
+double drand(void)
+{
     double d = rand()/(double) RAND_MAX;
     return d;
-
 }
 
-int random_range(int pocz, int kon)  {
+int random_range(int pocz, int kon)
+{
      int k = (kon - pocz + 1) * drand() + pocz;
      return k;
 }
@@ -54,29 +54,124 @@ void create_random_message()
     message[LENGTH - 1] = '\0';
 }
 
-bool other_instance_running()
+bool other_instance_running(int *prog)
 {
-    unsigned long long k;
-    unsigned long long before, after;
-    //opening the file
-    FILE *file = fopen(COUNTER_FILE, "r");
+    unsigned long  k1, k2;
+    unsigned long  before1, after1;
+    unsigned long  before2, after2;
 
-    if (file == NULL)
+    //opening the files
+    FILE *file1 = fopen(COUNTER_FILENAME1, "rb");
+    FILE *file2 = fopen(COUNTER_FILENAME2, "rb");
+
+    //counter files does not exist
+    if (file1 == NULL && file2 == NULL)
     {
+        *prog = 1;
         return false;
     }
 
-    if (!fread(&k, sizeof(k), 1, file))
+    //second file does not exists
+    if (file2 == NULL)
     {
-        fprintf(stderr, "Error reading from file\n");
+        if (!fread(&k1, sizeof(k1), 1, file1))
+        {
+            fprintf(stderr, "Error reading from file (other_instance_running)\n");
+        }
+
+        before1 = k1;
+        sleep(1);
+        rewind(file1);
+
+        if (!fread(&k1, sizeof(k1), 1, file1))
+        {
+            fprintf(stderr, "Error reading from file (other_instance_running)\n");
+        }
+
+        after1 = k1;
+        if (before1 != after1)
+        {
+            *prog = 2;
+            return true;
+        }
+        *prog = 1;
+        return false;
     }
-    before = k;
-    sleep(3);
-    rewind(file);
-    if (!fread(&k, sizeof(k), 1, file))
+
+    //first file does not exist
+    if (file1 == NULL)
     {
-        fprintf(stderr, "Error reading from file\n");
+        if (!fread(&k2, sizeof(k2), 1, file2))
+        {
+            fprintf(stderr, "Error reading from file (other_instance_running)\n");
+        }
+
+        before2 = k2;
+        sleep(1);
+        rewind(file2);
+
+        if (!fread(&k2, sizeof(k2), 1, file2))
+        {
+            fprintf(stderr, "Error reading from file (other_instance_running)\n");
+        }
+
+        after2 = k2;
+        if (before2 != after2)
+        {
+            *prog = 1;
+            return true;
+        }
+        *prog = 2;
+        return false;
     }
-    after = k;
-    return (after != before);
+    //read values
+    int r = fread(&k1, sizeof(k1), 1, file1);
+    if (r == 0)
+    {
+        fprintf(stderr, "Error reading from file (other_instance_running)\n");
+
+    }
+
+    if (!fread(&k2, sizeof(k2), 1, file2))
+    {
+        fprintf(stderr, "Error reading from file (other_instance_running)\n");
+    }
+
+    before1 = k1;
+    before2 = k2;
+
+    sleep(1);
+
+    rewind(file1);
+    rewind(file2);
+
+    //read values again
+    if (!fread(&k1, sizeof(k1), 1, file1))
+    {
+        fprintf(stderr, "Error reading from file (other_instance_running)\n");
+    }
+
+    if (!fread(&k2, sizeof(k2), 1, file2))
+    {
+        fprintf(stderr, "Error reading from file (other_instance_running)\n");
+    }
+
+    after1 = k1;
+    after2 = k2;
+
+    if (before1 != after1)
+    {
+        *prog = 2;
+        return true;
+    }
+    if (before2 != after2)
+    {
+        *prog = 1;
+        return true;
+    }
+    else
+    {
+        *prog = 1;
+        return false;
+    }
 }
