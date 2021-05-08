@@ -1,5 +1,5 @@
 CC := gcc
-CFLAGS := -Wall -pthread -std=c11 -Wextra -DCOUNTER_FILENAME1="/mnt/b/C++/messengers/counter1.txt" -DCOUNTER_FILENAME2="/mnt/b/C++/messengers/counter2.txt"
+CFLAGS := -Wall -pthread -std=c99 -Wextra 
 
 LIBS := -lm
 OUT := prog

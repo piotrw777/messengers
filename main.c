@@ -5,6 +5,7 @@
 #include <sys/time.h>
 #include <pthread.h>
 #include <stdbool.h>
+#include <sys/stat.h>
 
 #include "src1.h"
 #include "config.h"
@@ -55,12 +56,12 @@ char message[LENGTH];
 
 void * counter(void * arg)
 {
-    int sleep_time = 1e5;
+    int sleep_time = 975164;
     FILE *file = (FILE *) arg;
     unsigned long k = 1;
 
-    int n = 975164;
-    while (n--)
+    int n = 1e6;
+    while (n-- && QUIT == false)
     {
         if (is_empty(file))
         {
@@ -101,20 +102,20 @@ void * check_friend(void * arg)
     int friend_nr = 3 - prog_nr;
     bool status = INACTIVE;
 
-
     FILE *file;
-
     while (QUIT == false)
     {
         //open the counter file of the friend if it's not opened
-        file = fopen(COUNTER_FILENAMES[friend_nr], "r");
+        file = fopen(COUNTER_FILENAMES[friend_nr], "rb");
+
         if (file == NULL)
         {
-            fprintf(stderr, "File %s not opened ",COUNTER_FILENAMES[friend_nr]);
+            fprintf(stderr, "File %s not opened\n",COUNTER_FILENAMES[friend_nr]);
+            sleep(1);
             continue;
         }
 
-        rewind(file);
+        //rewind(file);
         if (!fread(&k, sizeof(k), 1, file))
         {
             fprintf(stderr, "Error reading from file (check_friend)\n");
@@ -124,7 +125,7 @@ void * check_friend(void * arg)
         before = k;
         sleep(1);
 
-        rewind(file);
+        //rewind(file);
         if (!fread(&k, sizeof(k), 1, file))
         {
             fprintf(stderr, "Error reading from file (check_friend)\n");
@@ -136,15 +137,17 @@ void * check_friend(void * arg)
         if (before != after && status == INACTIVE)
         {
             printf(GREEN"Other program is running!!!\n"RESET);
-            friend_status = status = ACTIVE;
+            friend_status = ACTIVE;
+            status = ACTIVE;
         }
         else if (before == after && status == ACTIVE)
         {
             printf(RED"Other program stopped!!!\n"RESET);
-            friend_status = status = INACTIVE;
+            friend_status = INACTIVE;
+            status = ACTIVE;
         }
     }
-
+    fclose(file);
     pthread_exit(NULL);
     return NULL;
 }
@@ -165,7 +168,7 @@ unsigned long long get_timestamp()
     return microseconds;
 }
 
-void * write_messages(void *arg)
+void * send_messages(void *arg)
 {
     static char timestamp_str[TIMESTAMP_LENGTH + 1];
 
@@ -218,7 +221,7 @@ int main()
 
     //create sender thread
     pthread_t sender;
-    pthread_create(&sender, NULL, write_messages, NULL);
+    pthread_create(&sender, NULL, send_messages, NULL);
 
     //joining threads
     pthread_join(counting_thread, NULL);

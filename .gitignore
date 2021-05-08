@@ -4,3 +4,6 @@ prog
 main.o
 *.o
 prog2
+*.csv
+*.txt
+prog2

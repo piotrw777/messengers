@@ -96,9 +96,11 @@ bool other_instance_running(int *prog)
             if (before1 != after1)
             {
                 *prog = 2;
+                fclose(file1);
                 return true;
             }
             *prog = 1;
+            fclose(file1);
             return false;
         }
 
@@ -125,9 +127,11 @@ bool other_instance_running(int *prog)
             if (before2 != after2)
             {
                 *prog = 1;
+                fclose(file2);
                 return true;
             }
             *prog = 2;
+            fclose(file2);
             return false;
         }
         //read values
@@ -170,20 +174,23 @@ bool other_instance_running(int *prog)
         if (before1 != after1)
         {
             *prog = 2;
+            fclose(file1);
+            fclose(file2);
             return true;
         }
         if (before2 != after2)
         {
             *prog = 1;
+            fclose(file1);
+            fclose(file2);
             return true;
         }
         else
         {
             *prog = 1;
+            fclose(file1);
+            fclose(file2);
             return false;
         }
-
     }
-
-
 }
