@@ -90,17 +90,7 @@ void * counter(void * arg)
     return NULL;
 }
 
-void make_fifo()
-{
-    int k;
-    const char *fifo_path = FIFO_PATHS[prog_nr];
-    unlink(fifo_path);
-    k = mkfifo(fifo_path, 0777);
-    if (k == 0)
-    {
-        printf("Fifo %s created succesfully\n", fifo_path);
-    }
-}
+
 
 void * check_friend(void * arg)
 {
@@ -153,15 +143,12 @@ void * check_friend(void * arg)
         {
             printf(GREEN"Other program is running!!!\n"RESET);
             friend_status = status = ACTIVE;
-            make_fifo();
         }
 
         else if (before == after && status == ACTIVE)
         {
             printf(RED"Other program stopped!!!\n"RESET);
             friend_status = status = INACTIVE;
-            unlink(FIFO_PATHS[prog_nr]);
-            //unlink(FIFO_PATHS[3 - prog_nr]);
         }
 
     }
@@ -179,15 +166,16 @@ void * send_messages(void *arg)
 
     while (QUIT == false)
     {
-        //create string from timestamp
-        sprintf(timestamp_str, "%018lli", get_timestamp());
-        //generate message
-        create_random_message();
-        printf(ORANGE"Message generated: %s\n"RESET, message);
-
-        //write message to fifo
         if (friend_status)
         {
+            //create string from timestamp
+            sprintf(timestamp_str, "%018lli", get_timestamp());
+            //generate message
+            create_random_message();
+            printf(ORANGE"Message generated: %s\n"RESET, message);
+
+            //write message to fifo
+
             fd = open(fifo_path, O_RDWR);
             if (fd < 0)
             {
@@ -199,14 +187,18 @@ void * send_messages(void *arg)
             {
                 perror("Error writing to fifo: ");
             }
-        }
+            if (QUIT == false)
+            {
+                close(fd);
+            }
+       }
 
         //write entry to the file
         fprintf(SENT_FILE, "%s,%s\n", timestamp_str, message);
 
         sleep(1);
-        close(fd);
     }
+
     printf("Thread send messages exiting\n");
     pthread_exit(NULL);
     return NULL;
@@ -236,7 +228,11 @@ void * read_messages(void *arg)
                 perror("Some part of a message missing\n");
             }
             printf(BOLD_GREEN"Received message: %s\n"RESET, buffer);
-            close(fd);
+            if (QUIT == false)
+            {
+                close(fd);
+            }
+
             usleep(1e5);
         }
     }

@@ -92,6 +92,25 @@ void close_files()
 
 }
 
+void make_fifos()
+{
+    int k1, k2;
+    const char *fifo_path1 = FIFO_PATHS[1];
+    const char *fifo_path2 = FIFO_PATHS[2];
+
+    k1 = mkfifo(fifo_path1, 0777);
+    k2 = mkfifo(fifo_path2, 0777);
+
+    if (k1 == 0)
+    {
+        printf("Fifo %s created succesfully\n", fifo_path1);
+    }
+    if (k2 == 0)
+    {
+        printf("Fifo %s created succesfully\n", fifo_path2);
+    }
+}
+
 void open_files()
 {
     COUNTER_FILE = fopen(COUNTER_FILENAMES[prog_nr], "wb+");
@@ -118,12 +137,18 @@ void join_threads()
 
 void breakHandler(int sig)
 {
+    int tmp;
     signal(sig, SIG_IGN);
     printf(BLUE"\nQuiting the program...\n"RESET); 
+
     QUIT = true;
     join_threads();
-    close_files();
-    unlink(FIFO_PATHS[prog_nr]);
+    if (other_instance_running(&tmp))
+    {
+        unlink(FIFO_PATH1_2);
+        unlink(FIFO_PATH2_1);
+    }
+    //close_files();
     printf(BLUE"Goodbuy cruel world...\n"RESET);
     exit(0);
 }
@@ -153,6 +178,7 @@ int main()
     if ((friend_status = other_instance_running(&prog_nr)))
     {
         printf("Another instance is running\n");
+        make_fifos();
     }
 
     introduce();
