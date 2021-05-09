@@ -4,11 +4,13 @@
 #include <time.h>
 #include <pthread.h>
 #include <stdbool.h>
+#include <sys/time.h>
 
 #include "src1.h"
 #include "config.h"
 
 extern char message[LENGTH];
+extern int prog_nr;
 
 double drand(void)
 {
@@ -52,6 +54,14 @@ void create_random_message()
         i++;
     }
     message[LENGTH - 1] = '\0';
+}
+
+unsigned long long get_timestamp()
+{
+    struct timeval te;
+    gettimeofday(&te, NULL); // get current time
+    unsigned long long microseconds = te.tv_sec * 10000000LL + te.tv_usec * 10 + prog_nr;
+    return microseconds;
 }
 
 bool other_instance_running(int *prog)

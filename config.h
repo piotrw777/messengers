@@ -32,6 +32,9 @@
 #define QUEUED_FILENAME1 "./queued1.csv"
 #define QUEUED_FILENAME2 "./queued2.csv"
 
+#define FIFO_PATH1_2 "./fifo1_2"
+#define FIFO_PATH2_1 "./fifo2_1"
+
 #endif
 
 

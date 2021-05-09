@@ -3,7 +3,7 @@ CFLAGS := -Wall -pthread -std=c11 -Wextra
 
 LIBS := -lm
 OUT := prog
-OBJ := src1.o
+OBJ := src1.o thread_functions.o
 
 all: $(OUT) copy 
 
@@ -17,7 +17,8 @@ main.o: main.c config.h
 	$(CC) $(CFLAGS) -c $< 
 
 copy:
-	@cp $(OUT) $(OUT)2
+	@cp $(OUT) /home/piotr/
+	@cp /home/piotr/$(OUT) /home/piotr/$(OUT)2
 
 clean:
 	@echo Removing buid files

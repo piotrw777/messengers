@@ -6,8 +6,10 @@
 #include <pthread.h>
 #include <stdbool.h>
 #include <sys/stat.h>
+#include <signal.h>
 
 #include "src1.h"
+#include "thread_functions.h"
 #include "config.h"
 
 const char * const COUNTER_FILENAMES[3] = {
@@ -34,6 +36,12 @@ const char * const QUEUED_FILENAMES[3] = {
                                     ,QUEUED_FILENAME2
                                     };
 
+const char * const FIFO_PATHS[3] = {
+                                    ""
+                                    ,FIFO_PATH1_2
+                                    ,FIFO_PATH2_1
+                                    };
+
 FILE * COUNTER_FILES[3];
 FILE * SENT_FILES[3];
 FILE * RECEIVED_FILES[3];
@@ -44,167 +52,103 @@ FILE * SENT_FILE;
 FILE * RECEIVED_FILE;
 FILE * QUEUED_FILE;
 
-enum FRIEND_STATUS {INACTIVE, ACTIVE};
-
 int prog_nr;
 
-static bool friend_status;
+volatile bool friend_status;
 
-static bool QUIT = false;
+volatile bool QUIT = false;
 
 char message[LENGTH];
+char buffer[LENGTH];
 
-void * counter(void * arg)
-{
-    int sleep_time = 150000;
-    FILE *file = (FILE *) arg;
-    unsigned long k = 1;
-
-    int n = 1e6;
-    while (n-- && QUIT == false)
-    {
-        if (is_empty(file))
-        {
-            fwrite(&k, sizeof(k), 1, file);
-            //printf("Value written: %lu\n", k);
-            usleep(sleep_time);
-            k++;
-        }
-
-        //read current value
-        rewind(file);
-        if (!fread(&k, sizeof(k), 1, file))
-        {
-            fprintf(stderr, "Error reading from file\n");
-        }
-
-        //printf("Value read: %lu from file: \n", k);
-        rewind(file);
-
-        //increment value
-        k++;
-
-        //write new value
-        fwrite(&k, sizeof(k), 1, file);
-        //printf("Value written: %lu\n", k);
-        usleep(sleep_time);
-    }
-    QUIT = true;
-    pthread_exit(NULL);
-    fclose(file);
-    return NULL;
-}
-
-void * check_friend(void * arg)
-{
-    unsigned long k;
-    unsigned long before, after;
-    int friend_nr = 3 - prog_nr;
-    bool status = INACTIVE;
-
-    FILE *file;
-    while (QUIT == false)
-    {
-        //open the counter file of the friend if it's not opened
-        file = fopen(COUNTER_FILENAMES[friend_nr], "rb");
-        if (file == NULL)
-        {
-            fprintf(stderr, "File %s not opened\n",COUNTER_FILENAMES[friend_nr]);
-            sleep(1);
-            continue;
-        }
-
-        if (!fread(&k, sizeof(k), 1, file))
-        {
-            fprintf(stderr, "Error reading from file (check_friend)\n");
-            //continue;
-        }
-        fclose(file);
-        before = k;
-        //printf("Check friend before: %lu\n", k);
-
-        sleep(1);
-
-        file = fopen(COUNTER_FILENAMES[friend_nr], "rb");
-        if (file == NULL)
-        {
-            fprintf(stderr, "File %s not opened\n",COUNTER_FILENAMES[friend_nr]);
-            sleep(1);
-            continue;
-        }
-
-        if (!fread(&k, sizeof(k), 1, file))
-        {
-            fprintf(stderr, "Error reading from file (check_friend)\n");
-            //continue;
-        }
-        fclose(file);
-        after = k;
-        //printf("Check friend after: %lu\n", k);
-
-        if (before != after && status == INACTIVE)
-        {
-            printf(GREEN"Other program is running!!!\n"RESET);
-            friend_status = status = ACTIVE;
-        }
-
-        else if (before == after && status == ACTIVE)
-        {
-            printf(RED"Other program stopped!!!\n"RESET);
-            friend_status = status = INACTIVE;
-        }
-
-    }
-
-    pthread_exit(NULL);
-    return NULL;
-}
-
-//void * read_messages(void *arg)
-//{
-
-//    return NULL;
-
-
-//}
-
-unsigned long long get_timestamp()
-{
-    struct timeval te;
-    gettimeofday(&te, NULL); // get current time
-    unsigned long long microseconds = te.tv_sec * 10000000LL + te.tv_usec * 10 + prog_nr;
-    return microseconds;
-}
-
-void * send_messages(void *arg)
-{
-    static char timestamp_str[TIMESTAMP_LENGTH + 1];
-
-    while (QUIT == false)
-    {
-        //create string from timestamp
-        sprintf(timestamp_str, "%018lli", get_timestamp());
-
-        //generate message
-        create_random_message();
-        printf(ORANGE"Message generated: %s\n"RESET, message);
-
-        //write entry
-        fprintf(SENT_FILE, "%s,%s\n", timestamp_str, message);
-
-        sleep(1);
-    }
-    pthread_exit(NULL);
-    return NULL;
-}
+pthread_t counting_thread;
+pthread_t check_friend_thread;
+pthread_t sender;
+pthread_t reader;
 
 void introduce()
 {
     printf("I am program nr %d\n", prog_nr);
 }
 
+void close_files()
+{
+    if(COUNTER_FILE != NULL)
+    {
+        fclose(COUNTER_FILE);
+    }
+    if(SENT_FILE != NULL)
+    {
+        fclose(SENT_FILE);
+    }
+    if(RECEIVED_FILE != NULL)
+    {
+        fclose(RECEIVED_FILE);
+    }
+    if(QUEUED_FILE != NULL)
+    {
+        fclose(QUEUED_FILE);
+    }
+
+}
+
+void open_files()
+{
+    COUNTER_FILE = fopen(COUNTER_FILENAMES[prog_nr], "wb+");
+    SENT_FILE = fopen(SENT_FILENAMES[prog_nr], "a");
+    RECEIVED_FILE = fopen(RECEIVED_FILENAMES[prog_nr], "ab");
+    QUEUED_FILE = fopen(QUEUED_FILENAMES[prog_nr], "ab+");
+}
+
+void create_threads()
+{
+    pthread_create(&counting_thread, NULL, counter, (void *) COUNTER_FILE);
+    pthread_create(&check_friend_thread, NULL, check_friend, NULL);
+    pthread_create(&sender, NULL, send_messages, NULL);
+    pthread_create(&reader, NULL, read_messages, NULL);
+}
+
+void join_threads()
+{
+    pthread_join(counting_thread, NULL);
+    pthread_join(check_friend_thread, NULL);
+    pthread_join(sender, NULL);
+    pthread_join(reader, NULL);
+}
+
+void breakHandler(int sig)
+{
+    signal(sig, SIG_IGN);
+    printf(BLUE"\nQuiting the program...\n"RESET); 
+    QUIT = true;
+    join_threads();
+    close_files();
+    unlink(FIFO_PATHS[prog_nr]);
+    printf(BLUE"Goodbuy cruel world...\n"RESET);
+    exit(0);
+}
+
+/*
+ *   mkfifo(argv[1], S_IRWXU | S_IRWXG | S_IRWXO);
+  int fifo = open(argv[1], O_RDONLY);
+
+  /* Duplicate the file 'fifo', so that file descriptor 0 points to it.
+   * Note that 0 is the file descriptor of stdin.
+  dup2(fifo, 0);
+
+  char line[1024];
+  int i = 0;
+  printf("Reading File %s\n", argv[1]);
+  while(fgets(line, 1024, stdin))
+    printf("%3d| %s", i++, line);
+  printf("\n");
+ */
+
 int main()
 {
+    //handling Ctrl+C quit
+    signal(SIGINT, breakHandler);
+    srand(time(0));
     //determine the number of the program
     if ((friend_status = other_instance_running(&prog_nr)))
     {
@@ -212,27 +156,7 @@ int main()
     }
 
     introduce();
-
-    //opening the files
-    COUNTER_FILE = fopen(COUNTER_FILENAMES[prog_nr], "wb+");
-    SENT_FILE = fopen(SENT_FILENAMES[prog_nr], "a");
-    RECEIVED_FILE = fopen(RECEIVED_FILENAMES[prog_nr], "ab");
-    QUEUED_FILE = fopen(QUEUED_FILENAMES[prog_nr], "ab+");
-
-    //create counting thread
-    pthread_t counting_thread;
-    pthread_create(&counting_thread, NULL, counter, (void *) COUNTER_FILE);
-
-    //create thread for responding of running or exiting another instance
-    pthread_t check_friend_thread;
-    pthread_create(&check_friend_thread, NULL, check_friend, (void *) &prog_nr);
-
-    //create sender thread
-    pthread_t sender;
-    pthread_create(&sender, NULL, send_messages, NULL);
-
-    //joining threads
-    pthread_join(counting_thread, NULL);
-    pthread_join(check_friend_thread, NULL);
-    pthread_join(sender, NULL);
+    open_files();
+    create_threads();
+    join_threads();
 }

@@ -7,3 +7,8 @@ prog2
 *.csv
 *.txt
 prog2
+prog2
+.vs/VSWorkspaceState.json
+.vs/slnx.sqlite
+.vs/messengers/v16/.suo
+thread_functionserrorfile.c
