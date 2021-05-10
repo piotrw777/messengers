@@ -2,56 +2,6 @@
 #include "src1.h"
 #include "list.h"
 
-/*
-void * counter(void * arg)
-{
-    int sleep_time = 150000;
-    FILE *file;
-    unsigned long k = 1;
-
-    int n = 1e6;
-    while (n-- && QUIT == false)
-    {
-        file = fopen(COUNTER_FILENAMES[prog_nr], "wb+");
-        if (file == NULL)
-        {
-            fprintf(stderr, "File %s not opened\n",COUNTER_FILENAMES[prog_nr]);
-            sleep(1);
-            continue;
-        }
-        if (is_empty(file))
-        {
-            fwrite(&k, sizeof(k), 1, file);
-            //printf("Value written: %lu\n", k);
-            usleep(sleep_time);
-            k++;
-        }
-
-        //read current value
-        rewind(file);
-        if (!fread(&k, sizeof(k), 1, file))
-        {
-            fprintf(stderr, "Error reading from file\n");
-        }
-
-        //printf("Value read: %lu from file: \n", k);
-        rewind(file);
-        //increment value
-        k++;
-        //write new value
-        fwrite(&k, sizeof(k), 1, file);
-        //printf("Value written: %lu\n", k);
-        fclose(file);
-        usleep(sleep_time);
-    }
-
-   // fclose(file);
-    printf("Thread counter exiting\n");
-    pthread_exit(NULL);
-    return NULL;
-}
-*/
-
 void * counter(void * arg)
 {
     int sleep_time = 150000;
@@ -112,11 +62,29 @@ void * check_friend(void * arg)
             sleep(1);
             continue;
         }
-
+        //read value before
         if (!fread(&k, sizeof(k), 1, file))
         {
             fprintf(stderr, "Error reading from file (check_friend)\n");
             sleep(1);
+            continue;
+        }
+
+        fclose(file);
+        before = k;
+        sleep(1);
+
+        file = fopen(COUNTER_FILENAMES[friend_nr], "rb");
+        if (file == NULL)
+        {
+            fprintf(stderr, "File %s not opened\n",COUNTER_FILENAMES[friend_nr]);
+            sleep(1);
+            continue;
+        }
+        //read value after
+        if (!fread(&k, sizeof(k), 1, file))
+        {
+            fprintf(stderr, "Error reading from file (check_friend)\n");
             continue;
         }
         //read friend_pid
@@ -127,31 +95,12 @@ void * check_friend(void * arg)
             continue;
         }
         fclose(file);
-        before = k;
-        //printf("Check friend before: %lu\n", k);
-
-        sleep(1);
-
-        file = fopen(COUNTER_FILENAMES[friend_nr], "rb");
-        if (file == NULL)
-        {
-            fprintf(stderr, "File %s not opened\n",COUNTER_FILENAMES[friend_nr]);
-            sleep(1);
-            continue;
-        }
-
-        if (!fread(&k, sizeof(k), 1, file))
-        {
-            fprintf(stderr, "Error reading from file (check_friend)\n");
-            //continue;
-        }
-        fclose(file);
         after = k;
-        //printf("Check friend after: %lu\n", k);
 
         if (before != after && status == INACTIVE)
         {
             printf(GREEN"Other program is running!!!\n"RESET);
+
             printf("Friend's pid: %d\n", friend_pid);
             friend_status = status = ACTIVE;
         }
@@ -242,10 +191,7 @@ void * send_messages(void *arg)
                     {
                         close(fd);
                     }
-                    //printf("List length: %d\n", queued_msgs->length);
                     pop(queued_msgs);
-                    //printf("After pop List length: %d\n", queued_msgs->length);
-
                 }
             }
        }
@@ -255,7 +201,6 @@ void * send_messages(void *arg)
             create_random_message();
             append_to_list(queued_msgs, message);
             printf(YELLOW"Message %s saved in queue\n"RESET, message);
-            fprintf(QUEUED_FILE, "%s,%s\n", "Qued**************", queued_msgs->head->elem);
             if (QUIT == false)
             {
                 close(fd);
@@ -265,23 +210,30 @@ void * send_messages(void *arg)
         {
             close(fd);
             printf("hmm...no sending\n");
-            sleep(1);
+
             if (friend_status == INACTIVE)
             {
                 PAUSE = false;
             }
-            EXIT_ALLOWANCE++;
-            if (EXIT_ALLOWANCE == 2)
+            EXIT_ALLOWANCE_SEND = true;
+            if (EXIT_ALLOWANCE_READ == true && EXIT_ALLOWANCE_SEND == true)
             {
                 kill(friend_pid, SIGUSR2);
+                EXIT_ALLOWANCE_READ = EXIT_ALLOWANCE_SEND = false;
             }
+            sleep(1);
         }
         sleep(1);
     }
     //save queued messages to the file
-    // ...
+    while (queued_msgs->head != NULL)
+    {
+        fprintf(QUEUED_FILE, "%s,%s\n", "Qued**************", queued_msgs->head->elem);
+        pop(queued_msgs);
+    }
 
-    clear_list(queued_msgs);
+    //clear_list(queued_msgs);
+    destroy_list(&queued_msgs);
     printf("Thread send messages exiting\n");
     pthread_exit(NULL);
     return NULL;
@@ -310,7 +262,13 @@ void * read_messages(void *arg)
             {
                 perror("Some part of a message missing\n");
             }
-            printf(BOLD_GREEN"Received message: %s\n"RESET, buffer);
+            //succesfull read
+            else
+            {
+                printf(BOLD_GREEN"Received message: %s\n"RESET, buffer);
+                fprintf(RECEIVED_FILE, "%s\n",buffer);
+            }
+
             if (QUIT == false)
             {
                 close(fd);
@@ -322,16 +280,17 @@ void * read_messages(void *arg)
         {
             close(fd);
             printf("hmm...no reading\n");
-            EXIT_ALLOWANCE++;
-            sleep(1);
+            EXIT_ALLOWANCE_READ = true;
             if (friend_status == INACTIVE)
             {
                 PAUSE = false;
             }
-            if (EXIT_ALLOWANCE == 2)
+            if (EXIT_ALLOWANCE_READ == true && EXIT_ALLOWANCE_SEND == true)
             {
                 kill(friend_pid, SIGUSR2);
+                EXIT_ALLOWANCE_READ = EXIT_ALLOWANCE_SEND = false;
             }
+            sleep(1);
         }
     }
     //close(fd);

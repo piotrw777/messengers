@@ -50,7 +50,14 @@ void create_random_message()
 
     while (i != LENGTH - 1)
     {
-        message[i] = random_letter();
+        if (i == 2 || i == 5)
+        {
+            message[i] = '-';
+        }
+        else
+        {
+             message[i] = random_letter();
+        }
         i++;
     }
     message[LENGTH - 1] = '\0';

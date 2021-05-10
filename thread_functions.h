@@ -28,7 +28,9 @@ extern volatile sig_atomic_t QUIT;
 
 volatile sig_atomic_t PAUSE;
 
-volatile sig_atomic_t EXIT_ALLOWANCE;
+volatile sig_atomic_t EXIT_ALLOWANCE_READ;
+
+volatile sig_atomic_t EXIT_ALLOWANCE_SEND;
 
 extern char message[LENGTH];
 

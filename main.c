@@ -55,13 +55,15 @@ FILE * QUEUED_FILE;
 
 int prog_nr;
 
-volatile bool friend_status;
+volatile bool friend_status = false;
 
 volatile sig_atomic_t QUIT = false;
 
 volatile sig_atomic_t PAUSE = false;
 
-volatile sig_atomic_t EXIT_ALLOWANCE = false;
+volatile sig_atomic_t EXIT_ALLOWANCE_READ = false;
+
+volatile sig_atomic_t EXIT_ALLOWANCE_SEND = false;
 
 char message[LENGTH];
 char buffer[LENGTH];
@@ -98,6 +100,7 @@ void close_files()
     {
         fclose(QUEUED_FILE);
     }
+    printf("Closing the files\n");
 
 }
 

@@ -22,7 +22,6 @@ void print_list(List * list);
 void reverse_list(List * list);
 void pop (List *list);
 int is_list_empty(List *list);
-
-
+void destroy_list(List ** list);
 
 #endif // LIST_H
