@@ -3,14 +3,8 @@
 #include "list.h"
 #include <string.h>
 
-#define ull unsigned long long
-#define check_access  // sprawdzanie poprawności indeksu elementu listy w funkcjach
-
-
 
 int size_of_node = sizeof(node);
-
-
 
 //zadane:
 List * create_list(void) {
@@ -101,14 +95,14 @@ void present_list(List * list) {
 
 }
 
-int get_nth_element(List * list, int index) {
+char * get_nth_element(List * list, int index) {
 #ifdef check_access
     if(list->head == NULL) {
         perror("Proba dostepu do elementu w pustej liscie\nBlad w funkcji get_nth_element");
         exit(1);
     }
 
-    if( index >= (list -> length) ) {
+    if( (size_t) index >= (list -> length) ) {
         perror("Proba dostepu do nieistniejacego elementu listy\nBlad w funkcji get_nth_element");
         exit(1);
     }
@@ -125,7 +119,7 @@ int get_nth_element(List * list, int index) {
 } // end of get_nth_element
 
 void reverse_list(List * list) {
-    if(list->length <= 1) return;
+    if(list->length <= (size_t) 1) return;
 
     node * wsk_node1 = NULL;
     node * wsk_node2 = list->head;
@@ -185,47 +179,68 @@ void reverse_list(List * list) {
 
 //} //end insert_to_list
 
-//void remove_nth_element(List * list, int index) {
-//    //usuwanie elementu o indeksie 0
-//    if(index == 0) {
-//        //jeśli jest tylko jeden element
-//        if(list->length == 1) {
-//            free( list->head);
-//            list->head = NULL;
-//            list->tail = NULL;
-//        }
-//        else {
-//            node * wsk_node = list->head->next;
-//            free(list->head);
-//            list->head = wsk_node;
-//        }
-//        list->length--;
-//        return;
-//    }
-//#ifdef check_access
-//    if(index < 0 || index >= list->length) {
-//        perror("Proba usuniecia elementu o nieistniejacym indeksie.\bBlad w funkcji remove_nth_element");
-//        exit(1);
-//    }
-//#endif
-//    //elementy o indeksie >= 1
-//    int k = index - 1;
-//    node * wsk_node = list->head;
-//    node * wsk_node2;
-//    //idziemy do miejsca usuwania
-//    while(k--) {
-//        wsk_node = wsk_node->next;
-//    }
-//    wsk_node2 = wsk_node->next->next;
-//    free(wsk_node->next);
-//    wsk_node->next = wsk_node2;
-//    //jeśli usuwamy ostatni zmieniamy tail
-//    if(index == list->length - 1)
-//        list->tail = wsk_node;
+void remove_nth_element(List * list, int index)
+{
+    //usuwanie elementu o indeksie 0
+    if(index == 0)
+    {
+        //jeśli jest tylko jeden element
+        if(list->length == 1)
+        {
+            free (list->head->elem);
+            free (list->head);
+            list->head = NULL;
+            list->tail = NULL;
+        }
+        else
+        {
+            node * wsk_node = list->head->next;
+            free (list->head->elem);
+            free(list->head);
+            list->head = wsk_node;
+        }
+        list->length--;
+        return;
+    }
+#ifdef check_access
+    if(index < 0 || (size_t) index >= list->length)
+    {
+        perror("Proba usuniecia elementu o nieistniejacym indeksie.\bBlad w funkcji remove_nth_element");
+        exit(1);
+    }
+#endif
+    //elementy o indeksie >= 1
+    int k = index - 1;
+    node * wsk_node = list->head;
+    node * wsk_node2;
+    //idziemy do miejsca usuwania
+    while(k--)
+    {
+        wsk_node = wsk_node->next;
+    }
+    wsk_node2 = wsk_node->next->next;
+    free(wsk_node->next->elem);
+    free(wsk_node->next);
+    wsk_node->next = wsk_node2;
+    //jeśli usuwamy ostatni zmieniamy tail
+    if((size_t) index == list->length - 1)
+    {
+        list->tail = wsk_node;
+    }
+    list->length--;
+} //end of remove_nth_element
 
-//    list->length--;
-//} //end of remove_nth_element
+int is_list_empty(List *list)
+{
+    return list->length == 0;
+}
 
-
+void pop (List *list)
+{
+    if (!is_list_empty(list))
+    {
+            remove_nth_element(list, 0);
+    }
+}
 
 

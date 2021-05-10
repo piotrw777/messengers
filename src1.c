@@ -56,12 +56,34 @@ void create_random_message()
     message[LENGTH - 1] = '\0';
 }
 
+//void create_random_message()
+//{
+//    int i = 0;
+//    char c = message[0];
+//    if (c == 0)
+//    {
+//        memset(message, 65, LENGTH - 1);
+//    }
+//    else
+//    {
+//        memset(message, (c + 1) % 65 + 65, LENGTH - 1);
+//    }
+
+//    message[LENGTH - 1] = '\0';
+//}
+
+
 unsigned long long get_timestamp()
 {
     struct timeval te;
     gettimeofday(&te, NULL); // get current time
     unsigned long long microseconds = te.tv_sec * 10000000LL + te.tv_usec * 10 + prog_nr;
     return microseconds;
+}
+
+void create_timestamp()
+{
+    sprintf(timestamp_str, "%018lli", get_timestamp());
 }
 
 bool other_instance_running(int *prog)
@@ -73,8 +95,8 @@ bool other_instance_running(int *prog)
     while (true)
     {
         //opening the files
-        FILE *file1 = fopen(COUNTER_FILENAME1, "rb");
-        FILE *file2 = fopen(COUNTER_FILENAME2, "rb");
+        FILE *file1 = fopen(COUNTER_FILENAME1, "r");
+        FILE *file2 = fopen(COUNTER_FILENAME2, "r");
 
         //counter files does not exist
         if (file1 == NULL && file2 == NULL)

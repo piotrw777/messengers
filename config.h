@@ -1,7 +1,7 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 #define LINUX 1
-#define LENGTH  11
+#define LENGTH  3
 #define TIMESTAMP_LENGTH 18
 #define CSV_ENTRIES 2
 #define CSV_ENTRY_SIZE 30

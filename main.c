@@ -57,10 +57,18 @@ int prog_nr;
 
 volatile bool friend_status;
 
-sig_atomic_t QUIT = false;
+volatile sig_atomic_t QUIT = false;
+
+volatile sig_atomic_t PAUSE = false;
+
+volatile sig_atomic_t EXIT_ALLOWANCE = false;
 
 char message[LENGTH];
 char buffer[LENGTH];
+char timestamp_str[TIMESTAMP_LENGTH + 1];
+
+int my_pid;
+int friend_pid;
 
 pthread_t counting_thread;
 pthread_t check_friend_thread;
@@ -99,8 +107,11 @@ void make_fifos()
     const char *fifo_path1 = FIFO_PATHS[1];
     const char *fifo_path2 = FIFO_PATHS[2];
 
-    k1 = mkfifo(fifo_path1, 0777);
-    k2 = mkfifo(fifo_path2, 0777);
+//    k1 = mkfifo(fifo_path1, 0777);
+//    k2 = mkfifo(fifo_path2, 0777);
+
+    k1 = mkfifo(fifo_path1, 0666);
+    k2 = mkfifo(fifo_path2, 0666);
 
     if (k1 == 0)
     {
@@ -114,10 +125,10 @@ void make_fifos()
 
 void open_files()
 {
-    COUNTER_FILE = fopen(COUNTER_FILENAMES[prog_nr], "wb+");
-    SENT_FILE = fopen(SENT_FILENAMES[prog_nr], "a");
-    RECEIVED_FILE = fopen(RECEIVED_FILENAMES[prog_nr], "ab");
-    QUEUED_FILE = fopen(QUEUED_FILENAMES[prog_nr], "ab+");
+    COUNTER_FILE = fopen(COUNTER_FILENAMES[prog_nr], "w+");
+    SENT_FILE = fopen(SENT_FILENAMES[prog_nr], "w+");
+    RECEIVED_FILE = fopen(RECEIVED_FILENAMES[prog_nr], "w+");
+    QUEUED_FILE = fopen(QUEUED_FILENAMES[prog_nr], "w+");
 }
 
 void create_threads()
@@ -139,26 +150,37 @@ void join_threads()
 void breakHandler(int sig)
 {
     signal(sig, SIG_IGN);
-    int tmp;
-    printf(BLUE"\nQuiting the program...\n"RESET);
-    QUIT = true;
-    join_threads();
-    if (other_instance_running(&tmp))
+    if (friend_status == ACTIVE)
     {
-        unlink(FIFO_PATH1_2);
-        unlink(FIFO_PATH2_1);
+        kill(friend_pid, SIGUSR1);
     }
-    //close_files();
-    printf(BLUE"Goodbuy cruel world...\n"RESET);
-    exit(0);
+    else
+    {
+        QUIT = true;
+    }
+}
+
+void pause_handler(int sig)
+{
+    PAUSE = true;
+}
+
+void quit_handler(int sig)
+{
+    QUIT = true;
 }
 
 int main()
 {
-    printf("My pid is: %d\n", getpid());
+    my_pid = getpid();
+    printf("My pid is: %d\n", my_pid);
 
     //handling Ctrl+C quit
     signal(SIGINT, breakHandler);
+
+    signal(SIGUSR1, pause_handler);
+
+    signal(SIGUSR2, quit_handler);
 
     signal(SIGPIPE, SIG_IGN);
     srand(time(0));
@@ -174,4 +196,6 @@ int main()
     open_files();
     create_threads();
     join_threads();
+    close_files();
+    printf(BLUE"\nQuiting the program...\n"RESET);
 }

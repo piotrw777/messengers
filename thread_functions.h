@@ -24,11 +24,19 @@ extern int prog_nr;
 
 extern volatile bool friend_status;
 
-extern sig_atomic_t QUIT;
+extern volatile sig_atomic_t QUIT;
+
+volatile sig_atomic_t PAUSE;
+
+volatile sig_atomic_t EXIT_ALLOWANCE;
 
 extern char message[LENGTH];
 
 extern char buffer[LENGTH];
+
+extern int my_pid;
+
+extern int friend_pid;
 
 extern const char * const COUNTER_FILENAMES[3];
 
