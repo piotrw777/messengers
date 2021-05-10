@@ -135,63 +135,43 @@ void join_threads()
     pthread_join(sender, NULL);
     pthread_join(reader, NULL);
 }
-int break_counter;
+
 void breakHandler(int sig)
 {
-    break_counter++;
-    write(STDOUT_FILENO,"You broke the program %d times",40);
-//    int tmp;
-
-//    printf(BLUE"\nQuiting the program...\n"RESET);
-
-//    QUIT = true;
-//    join_threads();
-//    if (other_instance_running(&tmp))
-//    {
-//        unlink(FIFO_PATH1_2);
-//        unlink(FIFO_PATH2_1);
-//    }
-//    //close_files();
-//    printf(BLUE"Goodbuy cruel world...\n"RESET);
-//    exit(0);
+    signal(sig, SIG_IGN);
+    int tmp;
+    printf(BLUE"\nQuiting the program...\n"RESET);
+    QUIT = true;
+    join_threads();
+    if (other_instance_running(&tmp))
+    {
+        unlink(FIFO_PATH1_2);
+        unlink(FIFO_PATH2_1);
+    }
+    //close_files();
+    printf(BLUE"Goodbuy cruel world...\n"RESET);
+    exit(0);
 }
-
-/*
- *   mkfifo(argv[1], S_IRWXU | S_IRWXG | S_IRWXO);
-  int fifo = open(argv[1], O_RDONLY);
-
-  /* Duplicate the file 'fifo', so that file descriptor 0 points to it.
-   * Note that 0 is the file descriptor of stdin.
-  dup2(fifo, 0);
-
-  char line[1024];
-  int i = 0;
-  printf("Reading File %s\n", argv[1]);
-  while(fgets(line, 1024, stdin))
-    printf("%3d| %s", i++, line);
-  printf("\n");
- */
 
 int main()
 {
+    printf("My pid is: %d\n", getpid());
 
     //handling Ctrl+C quit
     signal(SIGINT, breakHandler);
+
+    signal(SIGPIPE, SIG_IGN);
     srand(time(0));
+
     //determine the number of the program
-//    if ((friend_status = other_instance_running(&prog_nr)))
-//    {
-//        printf("Another instance is running\n");
-//        make_fifos();
-//    }
+    if ((friend_status = other_instance_running(&prog_nr)))
+    {
+        printf("Another instance is running\n");
+        make_fifos();
+    }
 
     introduce();
-    //open_files();
-    //create_threads();
-    while (1)
-    {
-        printf("I'm here!!!\n");
-        sleep(1);
-    }
+    open_files();
+    create_threads();
     join_threads();
 }

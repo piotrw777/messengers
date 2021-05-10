@@ -90,8 +90,6 @@ void * counter(void * arg)
     return NULL;
 }
 
-
-
 void * check_friend(void * arg)
 {
     unsigned long k;

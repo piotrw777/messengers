@@ -3,7 +3,7 @@ CFLAGS := -Wall -pthread -std=c11 -Wextra
 
 LIBS := -lm
 OUT := prog
-OBJ := src1.o thread_functions.o
+OBJ := src1.o thread_functions.o list.o
 
 all: $(OUT) copy 
 
