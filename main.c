@@ -7,6 +7,7 @@
 #include <stdbool.h>
 #include <sys/stat.h>
 #include <signal.h>
+#include <string.h>
 
 #include "src1.h"
 #include "thread_functions.h"
@@ -56,7 +57,7 @@ int prog_nr;
 
 volatile bool friend_status;
 
-volatile bool QUIT = false;
+sig_atomic_t QUIT = false;
 
 char message[LENGTH];
 char buffer[LENGTH];
@@ -134,23 +135,25 @@ void join_threads()
     pthread_join(sender, NULL);
     pthread_join(reader, NULL);
 }
-
+int break_counter;
 void breakHandler(int sig)
 {
-    int tmp;
-    signal(sig, SIG_IGN);
-    printf(BLUE"\nQuiting the program...\n"RESET); 
+    break_counter++;
+    write(STDOUT_FILENO,"You broke the program %d times",40);
+//    int tmp;
 
-    QUIT = true;
-    join_threads();
-    if (other_instance_running(&tmp))
-    {
-        unlink(FIFO_PATH1_2);
-        unlink(FIFO_PATH2_1);
-    }
-    //close_files();
-    printf(BLUE"Goodbuy cruel world...\n"RESET);
-    exit(0);
+//    printf(BLUE"\nQuiting the program...\n"RESET);
+
+//    QUIT = true;
+//    join_threads();
+//    if (other_instance_running(&tmp))
+//    {
+//        unlink(FIFO_PATH1_2);
+//        unlink(FIFO_PATH2_1);
+//    }
+//    //close_files();
+//    printf(BLUE"Goodbuy cruel world...\n"RESET);
+//    exit(0);
 }
 
 /*
@@ -171,18 +174,24 @@ void breakHandler(int sig)
 
 int main()
 {
+
     //handling Ctrl+C quit
     signal(SIGINT, breakHandler);
     srand(time(0));
     //determine the number of the program
-    if ((friend_status = other_instance_running(&prog_nr)))
-    {
-        printf("Another instance is running\n");
-        make_fifos();
-    }
+//    if ((friend_status = other_instance_running(&prog_nr)))
+//    {
+//        printf("Another instance is running\n");
+//        make_fifos();
+//    }
 
     introduce();
-    open_files();
-    create_threads();
+    //open_files();
+    //create_threads();
+    while (1)
+    {
+        printf("I'm here!!!\n");
+        sleep(1);
+    }
     join_threads();
 }

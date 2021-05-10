@@ -9,6 +9,7 @@
 #include <fcntl.h>
 #include <pthread.h>
 #include <sys/stat.h>
+#include <signal.h>
 
 #include "config.h"
 
@@ -23,7 +24,7 @@ extern int prog_nr;
 
 extern volatile bool friend_status;
 
-extern volatile bool QUIT;
+extern sig_atomic_t QUIT;
 
 extern char message[LENGTH];
 
