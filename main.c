@@ -67,7 +67,6 @@ volatile sig_atomic_t EXIT_ALLOWANCE_SEND = false;
 
 char message[LENGTH];
 char buffer[LENGTH];
-char timestamp_str[TIMESTAMP_LENGTH + 1];
 
 int my_pid;
 int friend_pid;
@@ -128,10 +127,26 @@ void make_fifos()
 
 void open_files()
 {
-    COUNTER_FILE = fopen(COUNTER_FILENAMES[prog_nr], "w+");
-    SENT_FILE = fopen(SENT_FILENAMES[prog_nr], "w+");
-    RECEIVED_FILE = fopen(RECEIVED_FILENAMES[prog_nr], "w+");
-    QUEUED_FILE = fopen(QUEUED_FILENAMES[prog_nr], "w+");
+    FILE * COUNTER_FILE;
+    FILE * SENT_FILE;
+    FILE * RECEIVED_FILE;
+    FILE * QUEUED_FILE;
+
+    const char header[] = "date,time,microsecond,mode,message\n";
+
+    COUNTER_FILE = fopen(COUNTER_FILENAMES[prog_nr], "wb+");
+
+    SENT_FILE = fopen(SENT_FILENAMES[prog_nr], "w");
+    fprintf(SENT_FILE, "date,time,microsecond,mode,message\n");
+    fclose(SENT_FILE);
+
+    RECEIVED_FILE = fopen(RECEIVED_FILENAMES[prog_nr], "w");
+    fprintf(RECEIVED_FILE,"date,time,microsecond,mode,message\n");
+    fclose(RECEIVED_FILE);
+
+    QUEUED_FILE = fopen(QUEUED_FILENAMES[prog_nr], "w");
+    fprintf(QUEUED_FILE, "date,time,microsecond,mode,message\n");
+    fclose(QUEUED_FILE);
 }
 
 void create_threads()
@@ -196,7 +211,7 @@ int main()
     }
 
     introduce();
-    open_files();
+    //open_files();
     create_threads();
     join_threads();
     close_files();

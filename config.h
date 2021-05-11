@@ -2,7 +2,7 @@
 #define CONFIG_H
 #define LINUX 1
 #define LENGTH  9
-#define TIMESTAMP_LENGTH 18
+#define TIMESTAMP_LENGTH 26
 #define CSV_ENTRIES 2
 #define CSV_ENTRY_SIZE 30
 #define FIFO_PATH "./fifo"

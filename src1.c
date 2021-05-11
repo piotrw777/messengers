@@ -88,9 +88,24 @@ unsigned long long get_timestamp()
     return microseconds;
 }
 
-void create_timestamp()
+
+//void create_timestamp()
+//{
+//    sprintf(timestamp_str, "%018lli", get_timestamp());
+//}
+
+void create_timestamp(char *dest, char mode)
 {
-    sprintf(timestamp_str, "%018lli", get_timestamp());
+    //get current date
+    time_t t = time(NULL);
+    struct tm tm = *localtime(&t);
+
+    //get current microsecond
+    struct timeval te;
+    gettimeofday(&te, NULL);
+    long microseconds = te.tv_usec;
+
+    sprintf(dest, "%02d-%02d-%02d,%02d:%02d:%02d,%06ll,%c", tm.tm_mday, tm.tm_mon + 1,tm.tm_year + 1900, tm.tm_hour, tm.tm_min, tm.tm_sec,microseconds,mode);
 }
 
 bool other_instance_running(int *prog)

@@ -123,7 +123,9 @@ void * send_messages(void *arg)
     List *queued_msgs = create_list();
     int fd, wr;
     const char * fifo_path = FIFO_PATHS[prog_nr];
+    static char timestamp_str[TIMESTAMP_LENGTH + 1];
     char *queued_msg;
+    FILE *file;
 
     while (QUIT == false)
     {
@@ -134,7 +136,7 @@ void * send_messages(void *arg)
             if(is_list_empty(queued_msgs))
             {
                 //generate new message
-                create_timestamp();
+                create_timestamp(timestamp_str, 'N');
                 create_random_message();
                 printf(ORANGE"Message generated: %s\n"RESET, message);
 
@@ -156,7 +158,9 @@ void * send_messages(void *arg)
                 else
                 {
                     //write entry to the file
-                    fprintf(SENT_FILE, "%s,%s\n", timestamp_str, message);
+                    file = fopen(SENT_FILENAMES[prog_nr], "a");
+                    fprintf(file, "%s,%s\n", timestamp_str, message);
+                    fclose(file);
                 }
 
                 if (QUIT == false)
@@ -184,9 +188,13 @@ void * send_messages(void *arg)
                 //if send succesfull remove message from queue
                 else
                 {
+                    create_timestamp(timestamp_str, 'Q');
                     printf(MAGENDA"Message from queue sent: %s\n"RESET, queued_msg);
                     //write entry to the file
-                    fprintf(SENT_FILE, "%s,%s\n", "Qued**************", queued_msg);
+                    file = fopen(SENT_FILENAMES[prog_nr], "a");
+                    fprintf(file, "%s,%s\n", timestamp_str, queued_msg);
+                    fclose(file);
+
                     if (QUIT == false)
                     {
                         close(fd);
@@ -201,6 +209,7 @@ void * send_messages(void *arg)
             create_random_message();
             append_to_list(queued_msgs, message);
             printf(YELLOW"Message %s saved in queue\n"RESET, message);
+
             if (QUIT == false)
             {
                 close(fd);
@@ -228,7 +237,10 @@ void * send_messages(void *arg)
     //save queued messages to the file
     while (queued_msgs->head != NULL)
     {
-        fprintf(QUEUED_FILE, "%s,%s\n", "Qued**************", queued_msgs->head->elem);
+        FILE *file_que;
+        file_que = fopen(QUEUED_FILENAMES[prog_nr], "a");
+        fprintf(file_que, "%s\n", queued_msgs->head->elem);
+        fclose(file_que);
         pop(queued_msgs);
     }
 
@@ -241,13 +253,17 @@ void * send_messages(void *arg)
 
 void * read_messages(void *arg)
 {
-    const char * fifo_path = FIFO_PATHS[3 - prog_nr];
     int fd, rd;
+    const char * fifo_path = FIFO_PATHS[3 - prog_nr];
+    static char timestamp_str[TIMESTAMP_LENGTH + 1];
+    FILE *file;
 
     while (QUIT == false)
     {
         if (friend_status)
         {
+            create_timestamp(timestamp_str, 'R');
+
             fd = open(fifo_path, O_RDWR);
             if (fd < 0)
             {
@@ -266,7 +282,11 @@ void * read_messages(void *arg)
             else
             {
                 printf(BOLD_GREEN"Received message: %s\n"RESET, buffer);
-                fprintf(RECEIVED_FILE, "%s\n",buffer);
+
+                //save read message to file
+                file = fopen(RECEIVED_FILENAMES[prog_nr], "a");
+                fprintf(file, "%s,%s\n",timestamp_str,buffer);
+                fclose(file);
             }
 
             if (QUIT == false)
