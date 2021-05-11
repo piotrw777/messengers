@@ -49,9 +49,6 @@ FILE * RECEIVED_FILES[3];
 FILE * QUEUED_FILES[3];
 
 FILE * COUNTER_FILE;
-FILE * SENT_FILE;
-FILE * RECEIVED_FILE;
-FILE * QUEUED_FILE;
 
 int prog_nr;
 
@@ -87,20 +84,7 @@ void close_files()
     {
         fclose(COUNTER_FILE);
     }
-    if(SENT_FILE != NULL)
-    {
-        fclose(SENT_FILE);
-    }
-    if(RECEIVED_FILE != NULL)
-    {
-        fclose(RECEIVED_FILE);
-    }
-    if(QUEUED_FILE != NULL)
-    {
-        fclose(QUEUED_FILE);
-    }
     printf("Closing the files\n");
-
 }
 
 void make_fifos()
@@ -127,7 +111,6 @@ void make_fifos()
 
 void open_files()
 {
-    FILE * COUNTER_FILE;
     FILE * SENT_FILE;
     FILE * RECEIVED_FILE;
     FILE * QUEUED_FILE;
@@ -136,17 +119,26 @@ void open_files()
 
     COUNTER_FILE = fopen(COUNTER_FILENAMES[prog_nr], "wb+");
 
-    SENT_FILE = fopen(SENT_FILENAMES[prog_nr], "w");
-    fprintf(SENT_FILE, "date,time,microsecond,mode,message\n");
-    fclose(SENT_FILE);
+    if (!file_exists(SENT_FILENAMES[prog_nr]))
+    {
+        SENT_FILE = fopen(SENT_FILENAMES[prog_nr], "w");
+        fprintf(SENT_FILE, header);
+        fclose(SENT_FILE);
+    };
 
-    RECEIVED_FILE = fopen(RECEIVED_FILENAMES[prog_nr], "w");
-    fprintf(RECEIVED_FILE,"date,time,microsecond,mode,message\n");
-    fclose(RECEIVED_FILE);
+    if (!file_exists(RECEIVED_FILENAMES[prog_nr]))
+    {
+        RECEIVED_FILE = fopen(RECEIVED_FILENAMES[prog_nr], "w");
+        fprintf(RECEIVED_FILE, header);
+        fclose(RECEIVED_FILE);
+    };
 
-    QUEUED_FILE = fopen(QUEUED_FILENAMES[prog_nr], "w");
-    fprintf(QUEUED_FILE, "date,time,microsecond,mode,message\n");
-    fclose(QUEUED_FILE);
+    if (!file_exists(QUEUED_FILENAMES[prog_nr]))
+    {
+        QUEUED_FILE = fopen(QUEUED_FILENAMES[prog_nr], "w");
+        fprintf(QUEUED_FILE, "message\n");
+        fclose(QUEUED_FILE);
+    }
 }
 
 void create_threads()
@@ -211,7 +203,7 @@ int main()
     }
 
     introduce();
-    //open_files();
+    open_files();
     create_threads();
     join_threads();
     close_files();

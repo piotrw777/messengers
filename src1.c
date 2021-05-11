@@ -30,6 +30,11 @@ bool is_empty(FILE *file)
     return (ftell(file) == 0);
 }
 
+bool file_exists(const char *filename)
+{
+    FILE *file = fopen(filename, "r");
+    return (file != NULL);
+}
 //maps a set {0, 1, ..51} to letters
 char random_letter()
 {
@@ -105,7 +110,7 @@ void create_timestamp(char *dest, char mode)
     gettimeofday(&te, NULL);
     long microseconds = te.tv_usec;
 
-    sprintf(dest, "%02d-%02d-%02d,%02d:%02d:%02d,%06ll,%c", tm.tm_mday, tm.tm_mon + 1,tm.tm_year + 1900, tm.tm_hour, tm.tm_min, tm.tm_sec,microseconds,mode);
+    sprintf(dest, "%02d-%02d-%02d,%02d:%02d:%02d,%06lld,%c", tm.tm_mday, tm.tm_mon + 1,tm.tm_year + 1900, tm.tm_hour, tm.tm_min, tm.tm_sec,microseconds,mode);
 }
 
 bool other_instance_running(int *prog)

@@ -17,12 +17,14 @@ main.o: main.c config.h
 	$(CC) $(CFLAGS) -c $< 
 
 copy:
-	@cp $(OUT) /home/piotr/
-	@cp /home/piotr/$(OUT) /home/piotr/$(OUT)2
+	@cp $(OUT) $(OUT)2
 
 clean:
 	@echo Removing buid files
 	rm -v *.o $(OUT)*
 
+clear:
+	@echo Removing text files
+	rm -v *.txt *csv
 run:
 	./$(OUT)

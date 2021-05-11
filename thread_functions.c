@@ -58,7 +58,7 @@ void * check_friend(void * arg)
         file = fopen(COUNTER_FILENAMES[friend_nr], "rb");
         if (file == NULL)
         {
-            fprintf(stderr, "File %s not opened\n",COUNTER_FILENAMES[friend_nr]);
+            //fprintf(stderr, "File %s not opened\n",COUNTER_FILENAMES[friend_nr]);
             sleep(1);
             continue;
         }

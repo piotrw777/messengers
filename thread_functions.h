@@ -51,8 +51,5 @@ extern const char * const QUEUED_FILENAMES[3];
 extern const char * const FIFO_PATHS[3];
 
 extern FILE * COUNTER_FILE;
-extern FILE * SENT_FILE;
-extern FILE * RECEIVED_FILE;
-extern FILE * QUEUED_FILE;
 
 #endif // THREAD_FUNCTIONS_H
