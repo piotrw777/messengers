@@ -43,11 +43,6 @@ const char * const FIFO_PATHS[3] = {
                                     ,FIFO_PATH2_1
                                     };
 
-FILE * COUNTER_FILES[3];
-FILE * SENT_FILES[3];
-FILE * RECEIVED_FILES[3];
-FILE * QUEUED_FILES[3];
-
 FILE * COUNTER_FILE;
 
 int prog_nr;
@@ -61,6 +56,7 @@ volatile sig_atomic_t PAUSE = false;
 volatile sig_atomic_t EXIT_ALLOWANCE_READ = false;
 
 volatile sig_atomic_t EXIT_ALLOWANCE_SEND = false;
+
 
 char message[LENGTH];
 char buffer[LENGTH];
@@ -156,7 +152,6 @@ void join_threads()
     pthread_join(sender, NULL);
     pthread_join(reader, NULL);
 }
-
 void breakHandler(int sig)
 {
     signal(sig, SIG_IGN);

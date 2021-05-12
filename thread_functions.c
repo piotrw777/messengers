@@ -6,7 +6,9 @@ void * counter(void * arg)
 {
     int sleep_time = 150000;
     FILE *file = (FILE *) arg;
-    unsigned long k = 1;
+    unsigned long k = 0;
+    int friend_status_before = INACTIVE;
+    int friend_status_after = INACTIVE;
 
     while (QUIT == false)
     {
@@ -16,7 +18,7 @@ void * counter(void * arg)
             fwrite(&my_pid, sizeof(my_pid), 1, file);
             //printf("Value written: %lu\n", k);
             usleep(sleep_time);
-            k++;
+            k += 2;
         }
 
         //read current value
@@ -30,8 +32,26 @@ void * counter(void * arg)
         rewind(file);
 
         //increment value
-        k++;
+        k += 2;
 
+        //if friend is active communicate to friend
+        //that you know he's active
+        //so that he can start read your messages
+        friend_status_after = friend_status;
+        if (friend_status_after == ACTIVE && friend_status_before == INACTIVE)
+        {
+            k += 1;
+            read_ready = true;
+            printf("Ready for reading...\n");
+            friend_status_before = ACTIVE;
+        }
+        if (friend_status_after == INACTIVE && friend_status_before == ACTIVE)
+        {
+            k -= 1;
+            read_ready = false;
+            printf("Stop reading...\n");
+            friend_status_before = INACTIVE;
+        }
         //write new value
         fwrite(&k, sizeof(k), 1, file);
         fwrite(&my_pid, sizeof(my_pid), 1, file);
@@ -72,6 +92,15 @@ void * check_friend(void * arg)
 
         fclose(file);
         before = k;
+        //check if your friend is ready for reading
+        if (k % 2 == 1)
+        {
+            friend_read_ready = true;
+        }
+        else
+        {
+            friend_read_ready = false;
+        }
         sleep(1);
 
         file = fopen(COUNTER_FILENAMES[friend_nr], "rb");
@@ -130,7 +159,7 @@ void * send_messages(void *arg)
     while (QUIT == false)
     {
         //if friend is active
-        if (friend_status)
+        if (friend_status && friend_read_ready)
         {
             //no messages in the queue to send
             if(is_list_empty(queued_msgs))
@@ -260,10 +289,8 @@ void * read_messages(void *arg)
 
     while (QUIT == false)
     {
-        if (friend_status)
+        if (friend_status && read_ready)
         {
-            create_timestamp(timestamp_str, 'R');
-
             fd = open(fifo_path, O_RDWR);
             if (fd < 0)
             {
@@ -281,8 +308,8 @@ void * read_messages(void *arg)
             //succesfull read
             else
             {
+                create_timestamp(timestamp_str, 'R');
                 printf(BOLD_GREEN"Received message: %s\n"RESET, buffer);
-
                 //save read message to file
                 file = fopen(RECEIVED_FILENAMES[prog_nr], "a");
                 fprintf(file, "%s,%s\n",timestamp_str,buffer);

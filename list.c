@@ -242,5 +242,3 @@ void pop (List *list)
             remove_nth_element(list, 0);
     }
 }
-
-

@@ -24,6 +24,10 @@ extern int prog_nr;
 
 extern volatile bool friend_status;
 
+static volatile bool read_ready;
+
+static volatile bool friend_read_ready;
+
 extern volatile sig_atomic_t QUIT;
 
 volatile sig_atomic_t PAUSE;
