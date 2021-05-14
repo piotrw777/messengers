@@ -5,31 +5,27 @@
 void * counter(void * arg)
 {
     int sleep_time = 150000;
-    FILE *file = (FILE *) arg;
     unsigned long k = 0;
     int friend_status_before = INACTIVE;
     int friend_status_after = INACTIVE;
 
+    //clear the counter file
+    FILE *file = fopen(COUNTER_FILENAMES[prog_nr], "wb");
+    fwrite(&k, sizeof(k), 1, file);
+    fwrite(&my_pid, sizeof(my_pid), 1, file);
+    k += 2;
+    usleep(sleep_time);
+    fclose(file);
+
     while (QUIT == false)
     {
-        if (is_empty(file))
-        {
-            fwrite(&k, sizeof(k), 1, file);
-            fwrite(&my_pid, sizeof(my_pid), 1, file);
-            //printf("Value written: %lu\n", k);
-            usleep(sleep_time);
-            k += 2;
-        }
-
         //read current value
-        rewind(file);
+        file = fopen(COUNTER_FILENAMES[prog_nr], "rb");
         if (!fread(&k, sizeof(k), 1, file))
         {
             fprintf(stderr, "Error reading from file\n");
         }
-
-        //printf("Value read: %lu from file: \n", k);
-        rewind(file);
+        fclose(file);
 
         //increment value
         k += 2;
@@ -53,12 +49,13 @@ void * counter(void * arg)
             friend_status_before = INACTIVE;
         }
         //write new value
+        file = fopen(COUNTER_FILENAMES[prog_nr], "wb");
         fwrite(&k, sizeof(k), 1, file);
         fwrite(&my_pid, sizeof(my_pid), 1, file);
+        fclose(file);
         //printf("Value written: %lu\n", k);
         usleep(sleep_time);
     }
-    fclose(file);
     printf("Exiting the thread counter\n");
     pthread_exit(NULL);
     return NULL;
@@ -141,7 +138,6 @@ void * check_friend(void * arg)
         }
 
     }
-   // fclose(file);
     printf("Thread check_friend exiting\n");
     pthread_exit(NULL);
     return NULL;
@@ -238,26 +234,20 @@ void * send_messages(void *arg)
             create_random_message();
             append_to_list(queued_msgs, message);
             printf(YELLOW"Message %s saved in queue\n"RESET, message);
-
-            if (QUIT == false)
-            {
-                close(fd);
-            }
         }
         while (PAUSE == true)
         {
             close(fd);
             printf("hmm...no sending\n");
-
-            if (friend_status == INACTIVE)
-            {
-                PAUSE = false;
-            }
             EXIT_ALLOWANCE_SEND = true;
             if (EXIT_ALLOWANCE_READ == true && EXIT_ALLOWANCE_SEND == true)
             {
                 kill(friend_pid, SIGUSR2);
                 EXIT_ALLOWANCE_READ = EXIT_ALLOWANCE_SEND = false;
+            }
+            if (friend_status == INACTIVE)
+            {
+                PAUSE = false;
             }
             sleep(1);
         }
@@ -272,8 +262,6 @@ void * send_messages(void *arg)
         fclose(file_que);
         pop(queued_msgs);
     }
-
-    //clear_list(queued_msgs);
     destroy_list(&queued_msgs);
     printf("Thread send messages exiting\n");
     pthread_exit(NULL);
@@ -340,7 +328,6 @@ void * read_messages(void *arg)
             sleep(1);
         }
     }
-    //close(fd);
     printf("Thread read messages exiting\n");
     pthread_exit(NULL);
     return NULL;

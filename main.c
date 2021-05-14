@@ -43,8 +43,6 @@ const char * const FIFO_PATHS[3] = {
                                     ,FIFO_PATH2_1
                                     };
 
-FILE * COUNTER_FILE;
-
 int prog_nr;
 
 volatile bool friend_status = false;
@@ -74,15 +72,6 @@ void introduce()
     printf("I am program nr %d\n", prog_nr);
 }
 
-void close_files()
-{
-    if(COUNTER_FILE != NULL)
-    {
-        fclose(COUNTER_FILE);
-    }
-    printf("Closing the files\n");
-}
-
 void make_fifos()
 {
     int k1, k2;
@@ -105,7 +94,7 @@ void make_fifos()
     }
 }
 
-void open_files()
+void make_headers()
 {
     FILE * SENT_FILE;
     FILE * RECEIVED_FILE;
@@ -113,21 +102,19 @@ void open_files()
 
     const char header[] = "date,time,microsecond,mode,message\n";
 
-    COUNTER_FILE = fopen(COUNTER_FILENAMES[prog_nr], "wb+");
-
     if (!file_exists(SENT_FILENAMES[prog_nr]))
     {
         SENT_FILE = fopen(SENT_FILENAMES[prog_nr], "w");
         fprintf(SENT_FILE, header);
         fclose(SENT_FILE);
-    };
+    }
 
     if (!file_exists(RECEIVED_FILENAMES[prog_nr]))
     {
         RECEIVED_FILE = fopen(RECEIVED_FILENAMES[prog_nr], "w");
         fprintf(RECEIVED_FILE, header);
         fclose(RECEIVED_FILE);
-    };
+    }
 
     if (!file_exists(QUEUED_FILENAMES[prog_nr]))
     {
@@ -139,7 +126,7 @@ void open_files()
 
 void create_threads()
 {
-    pthread_create(&counting_thread, NULL, counter, (void *) COUNTER_FILE);
+    pthread_create(&counting_thread, NULL, counter, NULL);
     pthread_create(&check_friend_thread, NULL, check_friend, NULL);
     pthread_create(&sender, NULL, send_messages, NULL);
     pthread_create(&reader, NULL, read_messages, NULL);
@@ -152,6 +139,7 @@ void join_threads()
     pthread_join(sender, NULL);
     pthread_join(reader, NULL);
 }
+
 void breakHandler(int sig)
 {
     signal(sig, SIG_IGN);
@@ -167,6 +155,7 @@ void breakHandler(int sig)
 
 void pause_handler(int sig)
 {
+    signal(sig, SIG_IGN);
     PAUSE = true;
 }
 
@@ -188,6 +177,7 @@ int main()
     signal(SIGUSR2, quit_handler);
 
     signal(SIGPIPE, SIG_IGN);
+
     srand(time(0));
 
     //determine the number of the program
@@ -198,9 +188,8 @@ int main()
     }
 
     introduce();
-    open_files();
+    make_headers();
     create_threads();
     join_threads();
-    close_files();
     printf(BLUE"\nQuiting the program...\n"RESET);
 }
