@@ -149,6 +149,9 @@ void * send_messages(void *arg)
     int fd, wr;
     const char * fifo_path = FIFO_PATHS[prog_nr];
     static char timestamp_str[TIMESTAMP_LENGTH + 1];
+    static char pause_message[LENGTH] = {0,'P'};
+    static char quit_message[LENGTH] = {0,'Q'};
+
     char *queued_msg;
     FILE *file;
 
@@ -187,7 +190,6 @@ void * send_messages(void *arg)
                     fprintf(file, "%s,%s\n", timestamp_str, message);
                     fclose(file);
                 }
-
                 if (QUIT == false)
                 {
                     close(fd);
@@ -235,25 +237,64 @@ void * send_messages(void *arg)
             append_to_list(queued_msgs, message);
             printf(YELLOW"Message %s saved in queue\n"RESET, message);
         }
-        while (PAUSE == true)
+        //prepare for exit
+        if (QUIT_SENDING == true)
         {
+            //send pause message (for reading function)
+            fd = open(fifo_path, O_RDWR);
+
+            if (fd < 0)
+            {
+                perror("Error opening the fifo: ");
+            }
+            wr = write(fd, pause_message, LENGTH);
+
+            if (wr <= 0)
+            {
+                perror("Error writing to fifo: ");
+            }
+
             close(fd);
-            printf("hmm...no sending\n");
-            EXIT_ALLOWANCE_SEND = true;
-            if (EXIT_ALLOWANCE_READ == true && EXIT_ALLOWANCE_SEND == true)
+            //wait for exit allowance from oter program
+            while (QUIT == false)
             {
-                kill(friend_pid, SIGUSR2);
-                EXIT_ALLOWANCE_READ = EXIT_ALLOWANCE_SEND = false;
+                printf("Waiting for exit...\n");
+                sleep(1);
             }
-            if (friend_status == INACTIVE)
-            {
-                PAUSE = false;
-            }
-            sleep(1);
         }
-        sleep(1);
+        else if (PAUSE_SENDING == true)
+        {
+            //send quit message
+            fd = open(fifo_path, O_RDWR);
+            if (fd < 0)
+            {
+                perror("Error opening the fifo: ");
+            }
+            wr = write(fd, quit_message, LENGTH);
+            if (wr <= 0)
+            {
+                perror("Error writing to fifo: ");
+            }
+            close(fd);
+            EXIT_ALLOWANCE_SEND = true;
+            while (PAUSE_SENDING == true)
+            {
+                printf("hmm...no sending\n");
+                if (EXIT_ALLOWANCE_READ == true && EXIT_ALLOWANCE_SEND == true)
+                {
+                    kill(friend_pid, SIGUSR2);
+                    EXIT_ALLOWANCE_READ = EXIT_ALLOWANCE_SEND = false;
+                }
+                if (friend_status == INACTIVE)
+                {
+                    PAUSE_SENDING = false;
+                }
+                sleep(1);                           }
+        }
+        usleep(700000);
     }
     //save queued messages to the file
+    printf("Saving unsent messages to the file\n");
     while (queued_msgs->head != NULL)
     {
         FILE *file_que;
@@ -262,6 +303,7 @@ void * send_messages(void *arg)
         fclose(file_que);
         pop(queued_msgs);
     }
+    unlink(FIFO_PATHS[prog_nr]);
     destroy_list(&queued_msgs);
     printf("Thread send messages exiting\n");
     pthread_exit(NULL);
@@ -273,6 +315,9 @@ void * read_messages(void *arg)
     int fd, rd;
     const char * fifo_path = FIFO_PATHS[3 - prog_nr];
     static char timestamp_str[TIMESTAMP_LENGTH + 1];
+    static char pause_message[LENGTH] = {0,'P'};
+    static char quit_message[LENGTH] = {0,'Q'};
+
     FILE *file;
 
     while (QUIT == false)
@@ -294,6 +339,39 @@ void * read_messages(void *arg)
                 perror("Some part of a message missing\n");
             }
             //succesfull read
+            //read pause message
+            else if (buffer[0] == 0 && buffer[1] == 'P')
+            {
+                close(fd);
+                PAUSE_READING = true;
+                PAUSE_SENDING = true;
+                EXIT_ALLOWANCE_READ = true;
+                while (PAUSE_READING == true)
+                {
+                    printf("hmm...no reading\n");
+                    if (friend_status == INACTIVE)
+                    {
+                        PAUSE_READING = false;
+                    }
+                    if (EXIT_ALLOWANCE_READ == true && EXIT_ALLOWANCE_SEND == true)
+                    {
+                        kill(friend_pid, SIGUSR2);
+                        EXIT_ALLOWANCE_READ = EXIT_ALLOWANCE_SEND = false;
+                    }
+                    sleep(1);
+                }
+            }
+            //read quit message
+            else if (buffer[0] == 0 && buffer[1] == 'Q')
+            {
+                close(fd);
+                while (QUIT == false)
+                {
+                    printf("Wait for exit allowance...\n");
+                    sleep(1);
+                }
+            }
+            //normal message
             else
             {
                 create_timestamp(timestamp_str, 'R');
@@ -303,29 +381,7 @@ void * read_messages(void *arg)
                 fprintf(file, "%s,%s\n",timestamp_str,buffer);
                 fclose(file);
             }
-
-            if (QUIT == false)
-            {
-                close(fd);
-            }
-
-            usleep(1e5);
-        }
-        while (PAUSE == true)
-        {
-            close(fd);
-            printf("hmm...no reading\n");
-            EXIT_ALLOWANCE_READ = true;
-            if (friend_status == INACTIVE)
-            {
-                PAUSE = false;
-            }
-            if (EXIT_ALLOWANCE_READ == true && EXIT_ALLOWANCE_SEND == true)
-            {
-                kill(friend_pid, SIGUSR2);
-                EXIT_ALLOWANCE_READ = EXIT_ALLOWANCE_SEND = false;
-            }
-            sleep(1);
+            usleep(3e4);
         }
     }
     printf("Thread read messages exiting\n");

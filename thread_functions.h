@@ -30,7 +30,11 @@ static volatile bool friend_read_ready;
 
 extern volatile sig_atomic_t QUIT;
 
-volatile sig_atomic_t PAUSE;
+volatile sig_atomic_t PAUSE_SENDING;
+
+volatile sig_atomic_t PAUSE_READING;
+
+volatile sig_atomic_t QUIT_SENDING;
 
 volatile sig_atomic_t EXIT_ALLOWANCE_READ;
 

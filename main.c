@@ -49,7 +49,9 @@ volatile bool friend_status = false;
 
 volatile sig_atomic_t QUIT = false;
 
-volatile sig_atomic_t PAUSE = false;
+volatile sig_atomic_t PAUSE_SENDING = false;
+
+volatile sig_atomic_t QUIT_SENDING = false;
 
 volatile sig_atomic_t EXIT_ALLOWANCE_READ = false;
 
@@ -146,6 +148,7 @@ void breakHandler(int sig)
     if (friend_status == ACTIVE)
     {
         kill(friend_pid, SIGUSR1);
+        QUIT_SENDING = true;
     }
     else
     {
@@ -156,7 +159,7 @@ void breakHandler(int sig)
 void pause_handler(int sig)
 {
     signal(sig, SIG_IGN);
-    PAUSE = true;
+    PAUSE_SENDING = true;
 }
 
 void quit_handler(int sig)
