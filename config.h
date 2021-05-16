@@ -24,6 +24,9 @@
 #define FIFO_PATH1_2 "./fifo1_2"
 #define FIFO_PATH2_1 "./fifo2_1"
 
+#define SLEEPTIME_READ 200000000  //in nanoseconds
+#define SLEEPTIME_SEND 990000000  //in nanoseconds
+
 #define RESET "\x1b[0m"
 #define RED "\x1b[31m"
 #define GREEN "\x1b[32m"

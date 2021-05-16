@@ -164,6 +164,7 @@ void pause_handler(int sig)
 
 void quit_handler(int sig)
 {
+    signal(sig, SIG_IGN);
     QUIT = true;
 }
 

@@ -110,11 +110,32 @@ void create_timestamp(char *dest, char mode)
     gettimeofday(&te, NULL);
     long microseconds = te.tv_usec;
 
-    sprintf(dest, "%02d-%02d-%02d,%02d:%02d:%02d,%06lld,%c", tm.tm_mday, tm.tm_mon + 1,tm.tm_year + 1900, tm.tm_hour, tm.tm_min, tm.tm_sec,microseconds,mode);
+    sprintf(dest, "%02d-%02d-%02d,%02d:%02d:%02d,%06ld,%c", tm.tm_mday, tm.tm_mon + 1,tm.tm_year + 1900, tm.tm_hour, tm.tm_min, tm.tm_sec, microseconds,mode);
+}
+
+int nsleep(long nanoseconds)
+{
+   struct timespec req, rem;
+
+//   if(miliseconds > 999)
+//   {
+//        req.tv_sec = (int)(miliseconds / 1000);                            /* Must be Non-Negative */
+//        req.tv_nsec = (miliseconds - ((long)req.tv_sec * 1000)) * 1000000; /* Must be in range of 0 to 999999999 */
+//   }
+//   else
+//   {
+//        req.tv_sec = 0;                         /* Must be Non-Negative */
+//        req.tv_nsec = miliseconds * 1000000;    /* Must be in range of 0 to 999999999 */
+//   }
+   req.tv_sec = 0;
+   req.tv_nsec = nanoseconds;
+
+   return nanosleep(&req , &rem);
 }
 
 bool other_instance_running(int *prog)
 {
+    int sleep_time = 50000000;
     unsigned long  k1, k2;
     unsigned long  before1, after1;
     unsigned long  before2, after2;
@@ -142,7 +163,7 @@ bool other_instance_running(int *prog)
             }
 
             before1 = k1;
-            sleep(1);
+            nsleep(sleep_time);
             rewind(file1);
 
             if (!fread(&k1, sizeof(k1), 1, file1))
@@ -173,7 +194,7 @@ bool other_instance_running(int *prog)
             }
 
             before2 = k2;
-            sleep(1);
+            nsleep(sleep_time);
             rewind(file2);
 
             if (!fread(&k2, sizeof(k2), 1, file2))
@@ -209,7 +230,7 @@ bool other_instance_running(int *prog)
         before1 = k1;
         before2 = k2;
 
-        sleep(1);
+        nsleep(sleep_time);
 
         rewind(file1);
         rewind(file2);

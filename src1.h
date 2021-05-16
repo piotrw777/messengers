@@ -14,6 +14,7 @@ void create_random_message();
 bool other_instance_running();
 unsigned long long get_timestamp();
 void create_timestamp(char *dest, char mode);
+int nsleep(long miliseconds);
 
 
 #endif
