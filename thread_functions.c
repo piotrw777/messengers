@@ -83,7 +83,7 @@ void * check_friend(void * arg)
         //read value before
         if (!fread(&k, sizeof(k), 1, file))
         {
-            fprintf(stderr, "Error reading from file (check_friend)\n");
+            //fprintf(stderr, "Error reading from file (check_friend)\n");
             nsleep(sleep_time);
             continue;
         }
@@ -112,13 +112,13 @@ void * check_friend(void * arg)
         //read value after
         if (!fread(&k, sizeof(k), 1, file))
         {
-            fprintf(stderr, "Error reading from file (check_friend)\n");
+            //fprintf(stderr, "Error reading from file (check_friend)\n");
             continue;
         }
         //read friend_pid
         if (!fread(&friend_pid, sizeof(friend_pid), 1, file))
         {
-            fprintf(stderr, "Error reading from file (check_friend)\n");
+            //fprintf(stderr, "Error reading from file (check_friend)\n");
             nsleep(sleep_time);
             continue;
         }

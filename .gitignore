@@ -12,3 +12,4 @@ prog2
 .vs/slnx.sqlite
 .vs/messengers/v16/.suo
 thread_functionserrorfile.c
+.config.h.swp
