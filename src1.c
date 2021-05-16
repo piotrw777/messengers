@@ -113,27 +113,29 @@ void create_timestamp(char *dest, char mode)
     sprintf(dest, "%02d-%02d-%02d,%02d:%02d:%02d,%06ld,%c", tm.tm_mday, tm.tm_mon + 1,tm.tm_year + 1900, tm.tm_hour, tm.tm_min, tm.tm_sec, microseconds,mode);
 }
 
-int nsleep(long miliseconds)
+int nsleep(long nanoseconds)
 {
    struct timespec req, rem;
 
-   if(miliseconds > 999)
-   {
-        req.tv_sec = (int)(miliseconds / 1000);                            /* Must be Non-Negative */
-        req.tv_nsec = (miliseconds - ((long)req.tv_sec * 1000)) * 1000000; /* Must be in range of 0 to 999999999 */
-   }
-   else
-   {
-        req.tv_sec = 0;                         /* Must be Non-Negative */
-        req.tv_nsec = miliseconds * 1000000;    /* Must be in range of 0 to 999999999 */
-   }
+//   if(miliseconds > 999)
+//   {
+//        req.tv_sec = (int)(miliseconds / 1000);                            /* Must be Non-Negative */
+//        req.tv_nsec = (miliseconds - ((long)req.tv_sec * 1000)) * 1000000; /* Must be in range of 0 to 999999999 */
+//   }
+//   else
+//   {
+//        req.tv_sec = 0;                         /* Must be Non-Negative */
+//        req.tv_nsec = miliseconds * 1000000;    /* Must be in range of 0 to 999999999 */
+//   }
+   req.tv_sec = 0;
+   req.tv_nsec = nanoseconds;
 
    return nanosleep(&req , &rem);
 }
 
 bool other_instance_running(int *prog)
 {
-    int sleep_time = 500;
+    int sleep_time = 50000000;
     unsigned long  k1, k2;
     unsigned long  before1, after1;
     unsigned long  before2, after2;
