@@ -1,6 +1,7 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+
 #define LENGTH  9
 #define TIMESTAMP_LENGTH 26
 #define CSV_ENTRIES 2

@@ -15,4 +15,5 @@ bool other_instance_running();
 unsigned long long get_timestamp();
 void create_timestamp(char *dest, char mode);
 
+
 #endif
