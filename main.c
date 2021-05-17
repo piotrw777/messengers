@@ -121,7 +121,6 @@ void make_headers()
     if (!file_exists(QUEUED_FILENAMES[prog_nr]))
     {
         QUEUED_FILE = fopen(QUEUED_FILENAMES[prog_nr], "w");
-        fprintf(QUEUED_FILE, "message\n");
         fclose(QUEUED_FILE);
     }
 }

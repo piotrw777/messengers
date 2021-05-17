@@ -24,16 +24,39 @@ int random_range(int pocz, int kon)
      return k;
 }
 
-bool is_empty(FILE *file)
+bool is_empty(const char *filename)
 {
+    FILE *file = fopen(filename, "r");
+    if (file == NULL)
+    {
+        perror("is_empty");
+        exit(2);
+    }
     fseek(file, 0, SEEK_END);
-    return (ftell(file) == 0);
+    if(ftell(file) == 0)
+    {
+        fclose(file);
+        return true;
+    }
+    else
+    {
+        fclose(file);
+        return false;
+    }
 }
 
 bool file_exists(const char *filename)
 {
     FILE *file = fopen(filename, "r");
-    return (file != NULL);
+    if (file != NULL)
+    {
+        fclose(file);
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }
 //maps a set {0, 1, ..51} to letters
 char random_letter()

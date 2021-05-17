@@ -7,7 +7,7 @@
 
 double drand(void); 
 int random_range(int pocz, int kon);
-bool is_empty(FILE *file);
+bool is_empty(const char *filename);
 bool file_exists(const char *filename);
 char random_letter();
 void create_random_message();

@@ -1,6 +1,7 @@
 #include "thread_functions.h"
 #include "src1.h"
 #include "list.h"
+#include <string.h>
 
 void * counter(void * arg)
 {
@@ -145,6 +146,39 @@ void * check_friend(void * arg)
     return (arg = NULL);
 }
 
+void read_queued_msgs(const char *filename, List *list)
+{
+    char buffer[2 * LENGTH];
+    FILE *file = fopen(filename, "r");
+    //do nothing if the file does not exist or is empty
+    if (file_exists(filename) == false)
+    {
+        return;
+    }
+    if(is_empty(filename))
+    {
+        return;
+    }
+    //read lines from the file
+    while (fgets(buffer, sizeof(buffer), file) != NULL)
+    {
+        int len;
+        if (buffer[0] != '\n')
+        {
+            len = strlen(buffer);
+            if (len > 0 && buffer[len - 1] == '\n')
+            {
+                buffer[len - 1] = '\0';
+            }
+            append_to_list(list, buffer);
+        }
+    }
+    fclose(file);
+    //clear queued file
+    file = fopen(filename, "w");
+    fclose(file);
+}
+
 void * send_messages(void *arg)
 {
     List *queued_msgs = create_list();
@@ -157,6 +191,8 @@ void * send_messages(void *arg)
 
     char *queued_msg;
     FILE *file = fopen(SENT_FILENAMES[prog_nr], "a");
+    printf("Loading saved messages to queue list...\n");
+    read_queued_msgs(QUEUED_FILENAMES[prog_nr], queued_msgs);
 
     while (QUIT == false)
     {
@@ -356,9 +392,14 @@ void * read_messages(void *arg)
             else if (buffer[0] == 0 && buffer[1] == 'Q')
             {
                 close(fd);
+                int i = 0;
                 while (QUIT == false)
                 {
-                    printf("Wait for exit allowance...\n");
+                    if (i == 0)
+                    {
+                        printf("Wait for exit allowance...\n");
+                        i++;
+                    }
                     nsleep(SLEEPTIME_READ);
                 }
             }
