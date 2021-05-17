@@ -139,7 +139,6 @@ void * check_friend(void * arg)
             printf(RED"Other program stopped!!!\n"RESET);
             friend_status = status = INACTIVE;
         }
-
     }
     printf("Thread check_friend exiting\n");
     pthread_exit(NULL);
