@@ -179,6 +179,23 @@ void read_queued_msgs(const char *filename, List *list)
     fclose(file);
 }
 
+int send(int fd, const char *message, int len)
+{
+    //write message to fifo
+    int wr = write(fd, message, len);
+    if (wr < 0)
+    {
+        perror("Error writing to fifo: ");
+        return -1;
+    }
+    else if (wr < len)
+    {
+        fprintf(stderr, "Write problem\n");
+        return -1;
+    }
+    return 0;
+}
+
 void * send_messages(void *arg)
 {
     List *queued_msgs = create_list();
@@ -217,19 +234,7 @@ void * send_messages(void *arg)
                 printf(ORANGE"Message generated: %s\n"RESET, message);
 
                 //write message to fifo
-                wr = write(fd, message, LENGTH);
-                if (wr < 0)
-                {
-                    perror("Error writing to fifo: ");
-                }
-                else if (wr < LENGTH)
-                {
-                    fprintf(stderr, "Write problem\n");
-                    exit(2);
-                }
-
-                //succesfull write to FIFO
-                else
+                if (send(fd, message, LENGTH) == 0)
                 {
                     //write entry to the file
                     fprintf(file, "%s,%s\n", timestamp_str, message);
@@ -242,19 +247,9 @@ void * send_messages(void *arg)
                 queued_msg = queued_msgs->head->elem;
                 //write queued message to fifo
                 create_timestamp(timestamp_str, 'Q');
-                wr = write(fd, queued_msg, LENGTH);
-                if (wr < 0)
+                if (send(fd, queued_msg, LENGTH) == 0)
                 {
-                    perror("Error writing to fifo: ");
-                }
-                else if (wr < LENGTH)
-                {
-                    fprintf(stderr, "Write problem\n");
-                    exit(2);
-                }
-                //if send succesfull remove message from queue
-                else
-                {
+                    //if send succesfull remove message from queue
                     printf(MAGENDA"Message from queue sent: %s\n"RESET, queued_msg);
                     //write entry to the file
                     fprintf(file, "%s,%s\n", timestamp_str, queued_msg);
@@ -363,7 +358,7 @@ void * read_messages(void *arg)
             {
                 perror("Some part of a message missing\n");
             }
-            //succesfull read
+            //succesful read
 
             //read pause message
             else if (buffer[0] == 0 && buffer[1] == 'P')
