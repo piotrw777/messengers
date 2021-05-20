@@ -117,11 +117,6 @@ unsigned long long get_timestamp()
 }
 
 
-//void create_timestamp()
-//{
-//    sprintf(timestamp_str, "%018lli", get_timestamp());
-//}
-
 void create_timestamp(char *dest, char mode)
 {
     //get current date
@@ -155,7 +150,66 @@ int nsleep(long nanoseconds)
 
    return nanosleep(&req , &rem);
 }
+bool is_friend_running()
+{
+    int sleep_time = 50000000;
+    unsigned long k;
+    unsigned long before, after;
+    int friend_nr = 3 - prog_nr;
+    bool result_determined = false;
 
+    FILE *file;
+    while(result_determined == false)
+    {
+        //open the counter file of the friend if it's not opened
+        file = fopen(COUNTER_FILENAMES[friend_nr], "rb");
+        if (file == NULL)
+        {
+            //fprintf(stderr, "File %s not opened\n",COUNTER_FILENAMES[friend_nr]);
+            nsleep(sleep_time);
+            continue;
+        }
+        //read value before
+        if (!fread(&k, sizeof(k), 1, file))
+        {
+            //fprintf(stderr, "Error reading from file (check_friend)\n");
+            nsleep(sleep_time);
+            continue;
+        }
+        fclose(file);
+        before = k;
+        //wait
+        nsleep(sleep_time);
+
+        file = fopen(COUNTER_FILENAMES[friend_nr], "rb");
+        if (file == NULL)
+        {
+            fprintf(stderr, "File %s not opened\n",COUNTER_FILENAMES[friend_nr]);
+            nsleep(sleep_time);
+            continue;
+        }
+        //read value after
+        if (!fread(&k, sizeof(k), 1, file))
+        {
+            //fprintf(stderr, "Error reading from file (check_friend)\n");
+            continue;
+        }
+
+        fclose(file);
+        after = k;
+
+        if (before != after)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+}
+
+//determine the number of the program
 bool other_instance_running(int *prog)
 {
     int sleep_time = 50000000;

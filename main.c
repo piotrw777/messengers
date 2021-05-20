@@ -9,6 +9,14 @@
 #include <signal.h>
 #include <string.h>
 
+#include <errno.h>
+#include <fcntl.h>
+
+#include <semaphore.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <sys/types.h>
+
 #include "src1.h"
 #include "thread_functions.h"
 #include "config.h"
@@ -60,9 +68,14 @@ volatile sig_atomic_t EXIT_ALLOWANCE_SEND = false;
 
 char message[LENGTH];
 char buffer[LENGTH];
+static const char semname[] = "semfile";
+
+sem_t *sem;
 
 int my_pid;
 int friend_pid;
+
+static bool i_am_last;
 
 pthread_t counting_thread;
 pthread_t check_friend_thread;
@@ -79,9 +92,6 @@ void make_fifos()
     int k1, k2;
     const char *fifo_path1 = FIFO_PATHS[1];
     const char *fifo_path2 = FIFO_PATHS[2];
-
-//    k1 = mkfifo(fifo_path1, 0777);
-//    k2 = mkfifo(fifo_path2, 0777);
 
     k1 = mkfifo(fifo_path1, 0666);
     k2 = mkfifo(fifo_path2, 0666);
@@ -144,13 +154,23 @@ void join_threads()
 void breakHandler(int sig)
 {
     signal(sig, SIG_IGN);
-    if (friend_status == ACTIVE)
+    int sem_val;
+    sem_getvalue(sem, &sem_val);
+    if (sem_val == 0)
     {
+        printf("Don't be so quick!\n");
+    }
+    sem_wait(sem);
+
+    if (is_friend_running())
+    {
+        i_am_last = false;
         kill(friend_pid, SIGUSR1);
         QUIT_SENDING = true;
     }
     else
     {
+        i_am_last = true;
         QUIT = true;
     }
 }
@@ -188,6 +208,24 @@ int main()
     {
         printf("Another instance is running\n");
         make_fifos();
+        //i am second - open existing semaphore
+        sem = sem_open(semname, 0);
+        if (sem == SEM_FAILED)
+        {
+            perror("sem_open error: ");
+            exit(1);
+        }
+    }
+    else
+    {
+        //i am first - create semaphore
+        sem_unlink(semname);
+        sem = sem_open(semname, O_CREAT | O_EXCL, S_IRUSR|S_IWUSR, 1);
+        if (sem == SEM_FAILED)
+        {
+            perror("sem_open error");
+            exit(1);
+        }
     }
 
     introduce();
@@ -195,4 +233,23 @@ int main()
     create_threads();
     join_threads();
     printf(BLUE"\nQuiting the program...\n"RESET);
+    sem_post(sem);
+
+    //sem clean_up
+    if(i_am_last == false)
+    {
+        //close the semaphore
+        if (sem_close(sem) == -1)
+        {
+            perror("sem close");
+        }
+        if (sem_unlink(semname) == -1)
+        {
+            perror("sem_unlink");
+        }
+    }
+    else
+    {
+       sem_destroy(sem);
+    }
 }
