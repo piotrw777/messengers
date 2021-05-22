@@ -20,8 +20,8 @@ double drand(void)
 
 int random_range(int pocz, int kon)
 {
-     int k = (kon - pocz + 1) * drand() + pocz;
-     return k;
+    int k = (kon - pocz + 1) * drand() + pocz;
+    return k;
 }
 
 bool is_empty(const char *filename)
@@ -84,7 +84,7 @@ void create_random_message()
         }
         else
         {
-             message[i] = random_letter();
+            message[i] = random_letter();
         }
         i++;
     }
@@ -133,22 +133,22 @@ void create_timestamp(char *dest, char mode)
 
 int nsleep(long nanoseconds)
 {
-   struct timespec req, rem;
+    struct timespec req, rem;
 
-//   if(miliseconds > 999)
-//   {
-//        req.tv_sec = (int)(miliseconds / 1000);                            /* Must be Non-Negative */
-//        req.tv_nsec = (miliseconds - ((long)req.tv_sec * 1000)) * 1000000; /* Must be in range of 0 to 999999999 */
-//   }
-//   else
-//   {
-//        req.tv_sec = 0;                         /* Must be Non-Negative */
-//        req.tv_nsec = miliseconds * 1000000;    /* Must be in range of 0 to 999999999 */
-//   }
-   req.tv_sec = 0;
-   req.tv_nsec = nanoseconds;
+    //   if(miliseconds > 999)
+    //   {
+    //        req.tv_sec = (int)(miliseconds / 1000);                            /* Must be Non-Negative */
+    //        req.tv_nsec = (miliseconds - ((long)req.tv_sec * 1000)) * 1000000; /* Must be in range of 0 to 999999999 */
+    //   }
+    //   else
+    //   {
+    //        req.tv_sec = 0;                         /* Must be Non-Negative */
+    //        req.tv_nsec = miliseconds * 1000000;    /* Must be in range of 0 to 999999999 */
+    //   }
+    req.tv_sec = 0;
+    req.tv_nsec = nanoseconds;
 
-   return nanosleep(&req , &rem);
+    return nanosleep(&req , &rem);
 }
 bool is_friend_running()
 {
@@ -350,4 +350,33 @@ bool other_instance_running(int *prog)
             return false;
         }
     }
+}
+
+//#include <fcntl.h>
+//#include <errno.h>
+
+bool CheckForAnotherInstance()
+{
+    int fd;
+    struct flock fl;
+    fd = open("LOCK_FILE_NAME", O_RDWR);
+    if(fd == -1)
+    {
+        return false;
+    }
+    fl.l_type   = F_WRLCK;
+    fl.l_whence = SEEK_SET;
+    fl.l_start  = 0;
+    fl.l_len    = 0;
+    fl.l_pid    = getpid();
+    // try to create a file lock
+    if( fcntl(fd, F_SETLK, &fl) == -1)
+    {
+        // we failed to create a file lock, meaning it's already locked //
+        if( errno == EACCES || errno == EAGAIN)
+        {
+            return true;
+        }
+    }
+    return false;
 }
