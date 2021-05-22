@@ -106,6 +106,26 @@ void make_fifos()
     }
 }
 
+void create_counter_files()
+{
+    FILE *file1, *file2;
+    unsigned long k = 0;
+    //create a file if it does not exit
+    if (!file_exists(COUNTER_FILENAMES[1]))
+    {
+        file1 = fopen(COUNTER_FILENAMES[1], "wb");
+        fwrite(&k, sizeof(k), 1, file1);
+        fclose(file1);
+    }
+
+    if (!file_exists(COUNTER_FILENAMES[2]))
+    {
+        file2 = fopen(COUNTER_FILENAMES[2], "wb");
+        fwrite(&k, sizeof(k), 1, file2);
+        fclose(file2);
+    }
+}
+
 void make_headers()
 {
     FILE * SENT_FILE;
@@ -189,6 +209,7 @@ void quit_handler(int sig)
 
 int main()
 {
+    void create_counter_files();
     my_pid = getpid();
     printf("My pid is: %d\n", my_pid);
 
@@ -243,10 +264,10 @@ int main()
         {
             perror("sem close");
         }
-        if (sem_unlink(semname) == -1)
-        {
-            perror("sem_unlink");
-        }
+//        if (sem_unlink(semname) == -1)
+//        {
+//            perror("sem_unlink");
+//        }
         free(sem);
     }
     else
