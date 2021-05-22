@@ -352,31 +352,111 @@ bool other_instance_running(int *prog)
     }
 }
 
+//bool other_instance_running(int *prog)
+//{
+//    int sleep_time = 50000000;
+//    unsigned long  k1, k2;
+//    unsigned long  before1, after1;
+//    unsigned long  before2, after2;
+
+//    //opening the files
+//    FILE *file1 = fopen(COUNTER_FILENAME1, "rb");
+//    FILE *file2 = fopen(COUNTER_FILENAME2, "rb");
+
+//    //counter files does not exist
+//    if (file1 == NULL || file2 == NULL)
+//    {
+//        fprintf(stderr, "Counter files not created\n");
+//        exit(2);
+//    }
+
+//    while (true)
+//    {
+//        //read values for the first time
+//        rewind(file1);
+//        if (!fread(&k1, sizeof(k1), 1, file1))
+//        {
+//            fprintf(stderr, "Error reading from file (other_instance_running)\n");
+//            continue;
+//        }
+//        rewind(file2);
+//        if (!fread(&k2, sizeof(k2), 1, file2))
+//        {
+//            fprintf(stderr, "Error reading from file (other_instance_running)\n");
+//            continue;
+//        }
+
+//        before1 = k1;
+//        before2 = k2;
+
+//        nsleep(sleep_time);
+
+//        //read values again
+//        rewind(file1);
+//        if (!fread(&k1, sizeof(k1), 1, file1))
+//        {
+//            fprintf(stderr, "Error reading from file (other_instance_running)\n");
+//            continue;
+//        }
+//        rewind(file2);
+//        if (!fread(&k2, sizeof(k2), 1, file2))
+//        {
+//            fprintf(stderr, "Error reading from file (other_instance_running)\n");
+//            continue;
+//        }
+
+//        after1 = k1;
+//        after2 = k2;
+
+//        if (before1 != after1)
+//        {
+//            *prog = 2;
+//            fclose(file1);
+//            fclose(file2);
+//            return true;
+//        }
+//        if (before2 != after2)
+//        {
+//            *prog = 1;
+//            fclose(file1);
+//            fclose(file2);
+//            return true;
+//        }
+//        else
+//        {
+//            *prog = 1;
+//            fclose(file1);
+//            fclose(file2);
+//            return false;
+//        }
+//    }
+//}
+
 //#include <fcntl.h>
 //#include <errno.h>
 
-bool CheckForAnotherInstance()
-{
-    int fd;
-    struct flock fl;
-    fd = open("LOCK_FILE_NAME", O_RDWR);
-    if(fd == -1)
-    {
-        return false;
-    }
-    fl.l_type   = F_WRLCK;
-    fl.l_whence = SEEK_SET;
-    fl.l_start  = 0;
-    fl.l_len    = 0;
-    fl.l_pid    = getpid();
-    // try to create a file lock
-    if( fcntl(fd, F_SETLK, &fl) == -1)
-    {
-        // we failed to create a file lock, meaning it's already locked //
-        if( errno == EACCES || errno == EAGAIN)
-        {
-            return true;
-        }
-    }
-    return false;
-}
+//bool CheckForAnotherInstance()
+//{
+//    int fd;
+//    struct flock fl;
+//    fd = open("LOCK_FILE_NAME", O_RDWR);
+//    if(fd == -1)
+//    {
+//        return false;
+//    }
+//    fl.l_type   = F_WRLCK;
+//    fl.l_whence = SEEK_SET;
+//    fl.l_start  = 0;
+//    fl.l_len    = 0;
+//    fl.l_pid    = getpid();
+//    // try to create a file lock
+//    if( fcntl(fd, F_SETLK, &fl) == -1)
+//    {
+//        // we failed to create a file lock, meaning it's already locked //
+//        if( errno == EACCES || errno == EAGAIN)
+//        {
+//            return true;
+//        }
+//    }
+//    return false;
+//}
