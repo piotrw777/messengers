@@ -16,7 +16,7 @@ typedef struct List {
 } List;
 
 List * create_list(void);
-bool append_to_list(List * list, char *str);
+int append_to_list(List * list, char *str);
 void clear_list(List * list);
 void print_list(List * list);
 void reverse_list(List * list);

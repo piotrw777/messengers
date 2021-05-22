@@ -247,6 +247,7 @@ int main()
         {
             perror("sem_unlink");
         }
+        free(sem);
     }
     else
     {

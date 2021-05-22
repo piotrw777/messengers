@@ -156,10 +156,9 @@ bool is_friend_running()
     unsigned long k;
     unsigned long before, after;
     int friend_nr = 3 - prog_nr;
-    bool result_determined = false;
 
     FILE *file;
-    while(result_determined == false)
+    while(true)
     {
         //open the counter file of the friend if it's not opened
         file = fopen(COUNTER_FILENAMES[friend_nr], "rb");
@@ -207,6 +206,7 @@ bool is_friend_running()
             return false;
         }
     }
+    return false;
 }
 
 //determine the number of the program
