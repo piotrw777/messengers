@@ -80,9 +80,6 @@ void make_fifos()
     const char *fifo_path1 = FIFO_PATHS[1];
     const char *fifo_path2 = FIFO_PATHS[2];
 
-//    k1 = mkfifo(fifo_path1, 0777);
-//    k2 = mkfifo(fifo_path2, 0777);
-
     k1 = mkfifo(fifo_path1, 0666);
     k2 = mkfifo(fifo_path2, 0666);
 
