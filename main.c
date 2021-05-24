@@ -83,6 +83,7 @@ int my_pid;
 int friend_pid;
 
 static bool i_am_last;
+static bool semaphores_created;
 
 pthread_t counting_thread;
 pthread_t check_friend_thread;
@@ -177,9 +178,16 @@ void join_threads()
     pthread_join(sender, NULL);
     pthread_join(reader, NULL);
 }
-
+void breakHandler(int);
 void breakHandler(int sig)
 {
+    //prevent from exiting too early
+    if(semaphores_created == false)
+    {
+        printf("Not ready for exiting...\n");
+        signal(sig, breakHandler);
+        return;
+    }
     signal(sig, SIG_IGN);
     int sem_val;
     sem_getvalue(sem_quit, &sem_val);
@@ -192,11 +200,13 @@ void breakHandler(int sig)
     if (is_friend_running())
     {
         i_am_last = false;
+        printf("I am not last\n");
         kill(friend_pid, SIGUSR1);
         QUIT_SENDING = true;
     }
     else
     {
+        printf("I'm  last\n");
         i_am_last = true;
         QUIT = true;
     }
@@ -240,7 +250,7 @@ void create_semaphores1()
 }
 
 //create semaphores if you are program2
-void create_semaphres2()
+void create_semaphores2()
 {
     //open quit procedure sem
     sem_quit = sem_open(semname_quit, 0);
@@ -261,32 +271,28 @@ void create_semaphres2()
         }
     }
 }
+
 void sem_cleanup()
 {
     if(i_am_last == false)
     {
         //close the semaphores
+        sem_post(sem_quit);
         if (sem_close(sem_quit) == -1)
         {
             perror("sem close");
         }
-        free(sem_quit);
         for (int i = 1; i < 3; i++)
         {
             if (sem_close(sems_counter[i]) == -1)
             {
                 perror("sem_counter close");
             }
-            free(sems_counter[i]);
         }
-
-//      if (sem_unlink(semname) == -1)
-//      {
-//          perror("sem_unlink");
-//      }
     }
     else
     {
+       sem_post(sem_quit);
        sem_destroy(sem_quit);
        sem_destroy(sems_counter[1]);
        sem_destroy(sems_counter[2]);
@@ -316,20 +322,20 @@ int main()
         printf("Another instance is running\n");
         make_fifos();
         //i am second - open existing semaphores
-        create_semaphres2();
+        create_semaphores2();
     }
     else
     {
         //i am first - create semaphores
         create_semaphores1();
     }
+    semaphores_created = true;
 
     introduce();
     make_headers();
     create_threads();
     join_threads();
-    printf(BLUE"\nQuiting the program...\n"RESET);
-    sem_post(sem_quit);
+    printf(BLUE"Quiting the program...\n"RESET);
     sem_cleanup();
 }
 

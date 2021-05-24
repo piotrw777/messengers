@@ -3,94 +3,36 @@
 #include "list.h"
 #include <string.h>
 
-//OLD COUNTER
-//void * counter(void * arg)
-//{
-//    int sleep_time = 10000000;
-//    unsigned long k = 0;
-//    int friend_status_before = INACTIVE;
-//    int friend_status_after = INACTIVE;
-
-//    //clear the counter file
-//    FILE *file = fopen(COUNTER_FILENAMES[prog_nr], "wb");
-//    fwrite(&k, sizeof(k), 1, file);
-//    fwrite(&my_pid, sizeof(my_pid), 1, file);
-//    k += 2;
-//    nsleep(sleep_time);
-//    fclose(file);
-
-//    while (QUIT == false)
-//    {
-//        //read current value
-//        file = fopen(COUNTER_FILENAMES[prog_nr], "rb");
-//        if (!fread(&k, sizeof(k), 1, file))
-//        {
-//            fprintf(stderr, "Error reading from file\n");
-//        }
-//        fclose(file);
-
-//        //increment value
-//        k += 2;
-
-//        //if friend is active communicate to friend
-//        //that you know he's active
-//        //so that he can start read your messages
-//        friend_status_after = friend_status;
-//        if (friend_status_after == ACTIVE && friend_status_before == INACTIVE)
-//        {
-//            k += 1;
-//            read_ready = true;
-//            printf("Ready for reading...\n");
-//            friend_status_before = ACTIVE;
-//        }
-//        if (friend_status_after == INACTIVE && friend_status_before == ACTIVE)
-//        {
-//            k -= 1;
-//            read_ready = false;
-//            printf("Stop reading...\n");
-//            friend_status_before = INACTIVE;
-//        }
-//        //write new value
-//        file = fopen(COUNTER_FILENAMES[prog_nr], "wb");
-//        fwrite(&k, sizeof(k), 1, file);
-//        fwrite(&my_pid, sizeof(my_pid), 1, file);
-//        fclose(file);
-//        //printf("Value written: %lu\n", k);
-//        nsleep(sleep_time);
-//    }
-//    printf("Exiting the thread counter\n");
-//    pthread_exit(NULL);
-//    return (arg = NULL);
-//}
-
-//NEW COUNTER
 void * counter(void * arg)
 {
-    int sleep_time = 2e8;
+    int sleep_time = 1e8;
     unsigned long k = 0;
     int friend_status_before = INACTIVE;
     int friend_status_after = INACTIVE;
 
     //clear the counter file
     sem_wait(sems_counter[prog_nr]);
-    FILE *file = fopen(COUNTER_FILENAMES[prog_nr], "wb+");
+    FILE *file = fopen(COUNTER_FILENAMES[prog_nr], "wb");
     fwrite(&k, sizeof(k), 1, file);
-
     fwrite(&my_pid, sizeof(my_pid), 1, file);
-    sem_post(sems_counter[prog_nr]);
-
     k += 2;
-    nsleep(sleep_time);
+    fclose(file);
+    sem_post(sems_counter[prog_nr]);
 
     while (QUIT == false)
     {
-        //read current value
+        nsleep(sleep_time);
         sem_wait(sems_counter[prog_nr]);
-        rewind(file);
+        //read current value
+        file = fopen(COUNTER_FILENAMES[prog_nr], "rb");
         if (!fread(&k, sizeof(k), 1, file))
         {
             fprintf(stderr, "Error reading from file\n");
+            exit(1);
         }
+        fclose(file);
+
+        //increment value
         k += 2;
 
         //if friend is active communicate to friend
@@ -112,152 +54,50 @@ void * counter(void * arg)
             friend_status_before = INACTIVE;
         }
         //write new value
-        rewind(file);
-        if (!fwrite(&k, sizeof(k), 1, file))
-        {
-            fprintf(stderr, "Error writing to counter file\n");
-            exit(3);
-        }
-        printf("Value written: %d\n", k);
-        if (!fwrite(&my_pid, sizeof(my_pid), 1, file))
-        {
-            fprintf(stderr, "Error writing to counter file\n");
-            exit(3);
-        }
+        file = fopen(COUNTER_FILENAMES[prog_nr], "wb");
+        fwrite(&k, sizeof(k), 1, file);
+        fwrite(&my_pid, sizeof(my_pid), 1, file);
+        fclose(file);
         sem_post(sems_counter[prog_nr]);
+        //printf("Value written: %lu\n", k);
         nsleep(sleep_time);
     }
-    fclose(file);
-    printf("Exiting the thread counter\n");
+    printf("Thread counter exiting\n");
     pthread_exit(NULL);
     return (arg = NULL);
 }
 
-
-//old check friend
-//void * check_friend(void * arg)
-//{
-//    int sleep_time = 50000000;
-//    unsigned long k;
-//    unsigned long before, after;
-//    int friend_nr = 3 - prog_nr;
-//    bool status = INACTIVE;
-//
-//    while (QUIT == false)
-//    {
-//        //open the counter file of the friend if it's not opened
-//        FILE *file = fopen(COUNTER_FILENAMES[friend_nr], "rb");
-//        if (file == NULL)
-//        {
-//            fprintf(stderr, "File %s not opened\n",COUNTER_FILENAMES[friend_nr]);
-//            exit(4);
-//        }
-//        //read value before
-//        rewind(file);
-//        if (!fread(&k, sizeof(k), 1, file))
-//        {
-//            fprintf(stderr, "Error reading from file (check_friend)\n");
-//            nsleep(sleep_time);
-//            continue;
-//        }
-
-//        fclose(file);
-//        before = k;
-//        //check if your friend is ready for reading
-//        if (k % 2 == 1)
-//        {
-//            friend_read_ready = true;
-//        }
-//        else
-//        {
-//            friend_read_ready = false;
-//        }
-//        //wait
-//        nsleep(sleep_time);
-
-//        file = fopen(COUNTER_FILENAMES[friend_nr], "rb");
-//        if (file == NULL)
-//        {
-//            fprintf(stderr, "File %s not opened\n",COUNTER_FILENAMES[friend_nr]);
-//            nsleep(sleep_time);
-//            continue;
-//        }
-//        //read value after
-//        if (!fread(&k, sizeof(k), 1, file))
-//        {
-//            //fprintf(stderr, "Error reading from file (check_friend)\n");
-//            continue;
-//        }
-//        //read friend_pid
-//        if (!fread(&friend_pid, sizeof(friend_pid), 1, file))
-//        {
-//            //fprintf(stderr, "Error reading from file (check_friend)\n");
-//            nsleep(sleep_time);
-//            continue;
-//        }
-//        fclose(file);
-//        after = k;
-
-//        if (before != after && status == INACTIVE)
-//        {
-//            printf(GREEN"Other program is running!!!\n"RESET);
-
-//            printf("Friend's pid: %d\n", friend_pid);
-//            friend_status = status = ACTIVE;
-//        }
-
-//        else if (before == after && status == ACTIVE)
-//        {
-//            printf(RED"Other program stopped!!!\n"RESET);
-//            friend_status = status = INACTIVE;
-//        }
-//    }
-//    printf("Thread check_friend exiting\n");
-//    pthread_exit(NULL);
-//    return (arg = NULL);
-//}
-
-
-//new check friend
 void * check_friend(void * arg)
 {
-    int sleep_time = 9e8;
+    int sleep_time = 5e8;
     unsigned long k;
     unsigned long before, after;
     int friend_nr = 3 - prog_nr;
     bool status = INACTIVE;
 
-    //open the counter file of the friend if it's not opened
-    FILE *file = fopen(COUNTER_FILENAMES[friend_nr], "rb");
-    if (file == NULL)
-    {
-        fprintf(stderr, "File %s not opened\n",COUNTER_FILENAMES[friend_nr]);
-        exit(4);
-    }
-
+    FILE *file;
     while (QUIT == false)
     {
-        //read value before
+        nsleep(sleep_time);
         sem_wait(sems_counter[friend_nr]);
         //open the counter file of the friend if it's not opened
         file = fopen(COUNTER_FILENAMES[friend_nr], "rb");
         if (file == NULL)
         {
             fprintf(stderr, "File %s not opened\n",COUNTER_FILENAMES[friend_nr]);
-            exit(4);
+            continue;
         }
-
-        rewind(file);
+        //read value before
         if (!fread(&k, sizeof(k), 1, file))
         {
             fprintf(stderr, "Error reading from file (check_friend)\n");
-            exit(5);
+            //continue;
+            exit(1);
         }
         fclose(file);
         sem_post(sems_counter[friend_nr]);
-        printf("Value read: %d\n", k);
-        before = k;
 
+        before = k;
         //check if your friend is ready for reading
         if (k % 2 == 1)
         {
@@ -267,50 +107,50 @@ void * check_friend(void * arg)
         {
             friend_read_ready = false;
         }
-
         //wait
         nsleep(sleep_time);
 
-        //read value after
         sem_wait(sems_counter[friend_nr]);
         file = fopen(COUNTER_FILENAMES[friend_nr], "rb");
         if (file == NULL)
         {
             fprintf(stderr, "File %s not opened\n",COUNTER_FILENAMES[friend_nr]);
-            exit(4);
+            nsleep(sleep_time);
+            continue;
         }
-
-        rewind(file);
+        //read value after
         if (!fread(&k, sizeof(k), 1, file))
         {
             fprintf(stderr, "Error reading from file (check_friend)\n");
-            exit(5);
+            exit(1);
         }
-        printf("Value read: %d\n", k);
-        after = k;
-        fclose(file);
-        if (before != after && status == INACTIVE)
+        if (before != after)
         {
-            printf(GREEN"Other program is running!!!\n"RESET);
             //read friend_pid
             if (!fread(&friend_pid, sizeof(friend_pid), 1, file))
             {
                 fprintf(stderr, "Error reading from file (check_friend)\n");
-                exit(5);
+                //continue;
+                exit(1);
             }
+        }
+        fclose(file);
+        sem_post(sems_counter[friend_nr]);
+        after = k;
 
+        if (before != after && status == INACTIVE)
+        {
+            printf(GREEN"Other program is running!!!\n"RESET);
             printf("Friend's pid: %d\n", friend_pid);
             friend_status = status = ACTIVE;
         }
+
         else if (before == after && status == ACTIVE)
         {
             printf(RED"Other program stopped!!!\n"RESET);
             friend_status = status = INACTIVE;
         }
-        sem_post(sems_counter[friend_nr]);
-        nsleep(sleep_time);
     }
-    fclose(file);
     printf("Thread check_friend exiting\n");
     pthread_exit(NULL);
     return (arg = NULL);

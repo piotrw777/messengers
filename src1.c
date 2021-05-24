@@ -107,7 +107,158 @@ void create_random_message()
 //    message[LENGTH - 1] = '\0';
 //}
 
+bool is_friend_running()
+{
+    int sleep_time = 9e8;
+    unsigned long k;
+    unsigned long before, after;
+    int friend_nr = 3 - prog_nr;
+    bool result_determined = false;
 
+    FILE *file;
+    while(result_determined == false)
+    {
+        nsleep(sleep_time);
+        sem_wait(sems_counter[friend_nr]);
+        //open the counter file of the friend if it's not opened
+        file = fopen(COUNTER_FILENAMES[friend_nr], "rb");
+        if (file == NULL)
+        {
+            fprintf(stderr, "File %s not opened\n",COUNTER_FILENAMES[friend_nr]);
+
+            //continue;
+            exit(1);
+        }
+        //read value before
+        if (!fread(&k, sizeof(k), 1, file))
+        {
+            fprintf(stderr, "Error reading from file (check_friend)\n");
+            //nsleep(sleep_time);
+            //continue;
+            exit(1);
+        }
+        fclose(file);
+        sem_post(sems_counter[friend_nr]);
+        before = k;
+        //wait
+        nsleep(sleep_time);
+
+        sem_wait(sems_counter[friend_nr]);
+        file = fopen(COUNTER_FILENAMES[friend_nr], "rb");
+        if (file == NULL)
+        {
+            fprintf(stderr, "File %s not opened\n",COUNTER_FILENAMES[friend_nr]);
+            nsleep(sleep_time);
+            continue;
+        }
+        //read value after
+        if (!fread(&k, sizeof(k), 1, file))
+        {
+            fprintf(stderr, "Error reading from file (check_friend)\n");
+            //continue;
+            exit(1);
+        }
+        fclose(file);
+        sem_post(sems_counter[friend_nr]);
+        after = k;
+
+        if (before != after)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+}
+
+//determine the number of the program
+bool other_instance_running(int *prog)
+{
+    int sleep_time = 5e8;
+    unsigned long  k1, k2;
+    unsigned long  before1, after1;
+    unsigned long  before2, after2;
+
+    while (true)
+    {
+        //opening the files
+        FILE *file1 = fopen(COUNTER_FILENAME1, "r");
+        FILE *file2 = fopen(COUNTER_FILENAME2, "r");
+
+        //counter files does not exist
+        if (file1 == NULL || file2 == NULL)
+        {
+            fprintf(stderr, "Error opening counter files\n");
+            exit(1);
+        }
+
+        //read values
+        if (!fread(&k1, sizeof(k1), 1, file1))
+        {
+            fprintf(stderr, "Error reading from file (other_instance_running)\n");
+            //continue;
+            exit(1);
+        }
+
+        if (!fread(&k2, sizeof(k2), 1, file2))
+        {
+            fprintf(stderr, "Error reading from file (other_instance_running)\n");
+            //continue;
+            exit(1);
+        }
+
+        before1 = k1;
+        before2 = k2;
+
+        //wait
+        nsleep(sleep_time);
+
+        rewind(file1);
+        rewind(file2);
+
+        //read values again
+        if (!fread(&k1, sizeof(k1), 1, file1))
+        {
+            fprintf(stderr, "Error reading from file (other_instance_running)\n");
+            //continue;
+            exit(1);
+        }
+
+        if (!fread(&k2, sizeof(k2), 1, file2))
+        {
+            fprintf(stderr, "Error reading from file (other_instance_running)\n");
+            //continue;
+            exit(1);
+        }
+
+        after1 = k1;
+        after2 = k2;
+
+        if (before1 != after1)
+        {
+            *prog = 2;
+            fclose(file1);
+            fclose(file2);
+            return true;
+        }
+        if (before2 != after2)
+        {
+            *prog = 1;
+            fclose(file1);
+            fclose(file2);
+            return true;
+        }
+        else
+        {
+            *prog = 1;
+            fclose(file1);
+            fclose(file2);
+            return false;
+        }
+    }
+}
 unsigned long long get_timestamp()
 {
     struct timeval te;
@@ -115,7 +266,6 @@ unsigned long long get_timestamp()
     unsigned long long microseconds = te.tv_sec * 10000000LL + te.tv_usec * 10 + prog_nr;
     return microseconds;
 }
-
 
 void create_timestamp(char *dest, char mode)
 {
@@ -151,344 +301,7 @@ int nsleep(long nanoseconds)
     return nanosleep(&req , &rem);
 }
 
-//old
-//bool is_friend_running()
-//{
-//    int sleep_time = 3e7;
-//    unsigned long k;
-//    unsigned long before, after;
-//    int friend_nr = 3 - prog_nr;
 
-//    FILE *file;
-//    while(true)
-//    {
-
-//        //read value before
-//        if (!fread(&k, sizeof(k), 1, file))
-//        {
-//            //fprintf(stderr, "Error reading from file (check_friend)\n");
-//            nsleep(sleep_time);
-//            continue;
-//        }
-//        fclose(file);
-//        before = k;
-//        //wait
-//        nsleep(sleep_time);
-
-//        file = fopen(COUNTER_FILENAMES[friend_nr], "rb");
-//        if (file == NULL)
-//        {
-//            fprintf(stderr, "File %s not opened\n",COUNTER_FILENAMES[friend_nr]);
-//            nsleep(sleep_time);
-//            continue;
-//        }
-//        //read value after
-//        if (!fread(&k, sizeof(k), 1, file))
-//        {
-//            //fprintf(stderr, "Error reading from file (check_friend)\n");
-//            continue;
-//        }
-
-//        fclose(file);
-//        after = k;
-
-//        if (before != after)
-//        {
-//            return true;
-//        }
-//        else
-//        {
-//            return false;
-//        }
-//    }
-//    return false;
-//}
-
-//new
-bool is_friend_running()
-{
-    int sleep_time = 1e8;
-    unsigned long k;
-    unsigned long before, after;
-    int friend_nr = 3 - prog_nr;
-
-    FILE *file = fopen(COUNTER_FILENAMES[friend_nr], "rb");
-    if (file == NULL)
-    {
-        fprintf(stderr, "File %s not opened\n", COUNTER_FILENAMES[friend_nr]);
-        perror("Problem opening the counter file");
-        exit(6);
-    }
-
-    while(true)
-    {
-        //read value before
-        sem_wait(sems_counter[friend_nr]);
-        rewind(file);
-        if (!fread(&k, sizeof(k), 1, file))
-        {
-            fprintf(stderr, "Error reading from file (is friend running)\n");
-            exit(5);
-        }
-        sem_post(sems_counter[friend_nr]);
-
-        before = k;
-
-        //wait
-        nsleep(sleep_time);
-
-        //read value after
-        sem_wait(sems_counter[friend_nr]);
-        rewind(file);
-        if (!fread(&k, sizeof(k), 1, file))
-        {
-            fprintf(stderr, "Error reading from file (check_friend)\n");
-            exit(5);
-            //continue;
-        }
-        sem_post(sems_counter[friend_nr]);
-
-        after = k;
-
-        if (before != after)
-        {
-            fclose(file);
-            return true;
-        }
-        else
-        {
-            fclose(file);
-            return false;
-        }
-    }
-    return false;
-}
-//OLD
-//determine the number of the program
-//bool other_instance_running(int *prog)
-//{
-//    int sleep_time = 5e8;
-//    unsigned long  k1, k2;
-//    unsigned long  before1, after1;
-//    unsigned long  before2, after2;
-
-//    //opening the files
-//    FILE *file1 = fopen(COUNTER_FILENAME1, "r");
-//    FILE *file2 = fopen(COUNTER_FILENAME2, "r");
-
-//    //counter files does not exist
-//    if (file1 == NULL && file2 == NULL)
-//    {
-//        *prog = 1;
-//        return false;
-//    }
-
-//    while (true)
-//    {
-//        nsleep(sleep_time);
-
-//        //second file does not exists
-//        if (file2 == NULL)
-//        {
-//            if (!fread(&k1, sizeof(k1), 1, file1))
-//            {
-//                fprintf(stderr, "Error reading from file (other_instance_running)\n");
-//                continue;
-//            }
-
-//            before1 = k1;
-//            nsleep(sleep_time);
-//            rewind(file1);
-
-//            if (!fread(&k1, sizeof(k1), 1, file1))
-//            {
-//                fprintf(stderr, "Error reading from file (other_instance_running)\n");
-//                continue;
-//            }
-
-//            after1 = k1;
-//            if (before1 != after1)
-//            {
-//                *prog = 2;
-//                fclose(file1);
-//                return true;
-//            }
-//            *prog = 1;
-//            fclose(file1);
-//            return false;
-//        }
-
-//        //first file does not exist
-//        if (file1 == NULL)
-//        {
-//            if (!fread(&k2, sizeof(k2), 1, file2))
-//            {
-//                fprintf(stderr, "Error reading from file (other_instance_running)\n");
-//                continue;
-//            }
-
-//            before2 = k2;
-//            nsleep(sleep_time);
-//            rewind(file2);
-
-//            if (!fread(&k2, sizeof(k2), 1, file2))
-//            {
-//                fprintf(stderr, "Error reading from file (other_instance_running)\n");
-//                continue;
-//            }
-
-//            after2 = k2;
-//            if (before2 != after2)
-//            {
-//                *prog = 1;
-//                fclose(file2);
-//                return true;
-//            }
-//            *prog = 2;
-//            fclose(file2);
-//            return false;
-//        }
-//        //read values
-//        if (!fread(&k1, sizeof(k1), 1, file1))
-//        {
-//            fprintf(stderr, "Error reading from file (other_instance_running)\n");
-//            continue;
-//        }
-
-//        if (!fread(&k2, sizeof(k2), 1, file2))
-//        {
-//            fprintf(stderr, "Error reading from file (other_instance_running)\n");
-//            continue;
-//        }
-
-//        before1 = k1;
-//        before2 = k2;
-
-//        nsleep(sleep_time);
-
-//        rewind(file1);
-//        rewind(file2);
-
-//        //read values again
-//        if (!fread(&k1, sizeof(k1), 1, file1))
-//        {
-//            fprintf(stderr, "Error reading from file (other_instance_running)\n");
-//            continue;
-//        }
-
-//        if (!fread(&k2, sizeof(k2), 1, file2))
-//        {
-//            fprintf(stderr, "Error reading from file (other_instance_running)\n");
-//            continue;
-//        }
-
-//        after1 = k1;
-//        after2 = k2;
-
-//        if (before1 != after1)
-//        {
-//            *prog = 2;
-//            fclose(file1);
-//            fclose(file2);
-//            return true;
-//        }
-//        if (before2 != after2)
-//        {
-//            *prog = 1;
-//            fclose(file1);
-//            fclose(file2);
-//            return true;
-//        }
-//        else
-//        {
-//            *prog = 1;
-//            fclose(file1);
-//            fclose(file2);
-//            return false;
-//        }
-//    }
-//}
-
-//new
-bool other_instance_running(int *prog)
-{
-    int sleep_time = 9e8;
-    unsigned long  k1, k2;
-    unsigned long  before1, after1;
-    unsigned long  before2, after2;
-
-    //opening the files
-    FILE *file1 = fopen(COUNTER_FILENAME1, "rb");
-    FILE *file2 = fopen(COUNTER_FILENAME2, "rb");
-
-    //counter files does not exist
-    if (file1 == NULL || file2 == NULL)
-    {
-        fprintf(stderr, "Counter files not created\n");
-        exit(2);
-    }
-
-    while (true)
-    {
-        //read values for the first time
-        rewind(file1);
-        if (!fread(&k1, sizeof(k1), 1, file1))
-        {
-            fprintf(stderr, "Error reading from file (other_instance_running)\n");
-            continue;
-        }
-        rewind(file2);
-        if (!fread(&k2, sizeof(k2), 1, file2))
-        {
-            fprintf(stderr, "Error reading from file (other_instance_running)\n");
-            continue;
-        }
-
-        before1 = k1;
-        before2 = k2;
-
-        nsleep(sleep_time);
-
-        //read values again
-        rewind(file1);
-        if (!fread(&k1, sizeof(k1), 1, file1))
-        {
-            fprintf(stderr, "Error reading from file (other_instance_running)\n");
-            continue;
-        }
-        rewind(file2);
-        if (!fread(&k2, sizeof(k2), 1, file2))
-        {
-            fprintf(stderr, "Error reading from file (other_instance_running)\n");
-            continue;
-        }
-
-        after1 = k1;
-        after2 = k2;
-
-        if (before1 != after1)
-        {
-            *prog = 2;
-            fclose(file1);
-            fclose(file2);
-            return true;
-        }
-        if (before2 != after2)
-        {
-            *prog = 1;
-            fclose(file1);
-            fclose(file2);
-            return true;
-        }
-        else
-        {
-            *prog = 1;
-            fclose(file1);
-            fclose(file2);
-            return false;
-        }
-    }
-}
 
 //#include <fcntl.h>
 //#include <errno.h>
