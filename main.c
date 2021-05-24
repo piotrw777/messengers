@@ -68,9 +68,16 @@ volatile sig_atomic_t EXIT_ALLOWANCE_SEND = false;
 
 char message[LENGTH];
 char buffer[LENGTH];
-static const char semname[] = "semfile";
 
-sem_t *sem;
+static const char semname_quit[] = "semfile";
+static const char *semnames_counter[3] = {
+                                        ""
+                                        ,"semfile_counter1"
+                                        ,"semfile_counter2"
+                                        };
+
+sem_t *sem_quit;
+sem_t *sems_counter[3];
 
 int my_pid;
 int friend_pid;
@@ -175,12 +182,12 @@ void breakHandler(int sig)
 {
     signal(sig, SIG_IGN);
     int sem_val;
-    sem_getvalue(sem, &sem_val);
+    sem_getvalue(sem_quit, &sem_val);
     if (sem_val == 0)
     {
         printf("Don't be so quick!\n");
     }
-    sem_wait(sem);
+    sem_wait(sem_quit);
 
     if (is_friend_running())
     {
@@ -207,9 +214,88 @@ void quit_handler(int sig)
     QUIT = true;
 }
 
+//create semaphores if you are program1
+void create_semaphores1()
+{
+    //create quit semaphore
+    sem_unlink(semname_quit);
+    sem_quit = sem_open(semname_quit, O_CREAT | O_EXCL, S_IRUSR|S_IWUSR, 1);
+    if (sem_quit == SEM_FAILED)
+    {
+        perror("sem_open error");
+        exit(1);
+    }
+
+    //create counter semaphores
+    for (int i = 1; i < 3; i++)
+    {
+        sem_unlink(semnames_counter[i]);
+        sems_counter[i] = sem_open(semnames_counter[i], O_CREAT | O_EXCL, S_IRUSR|S_IWUSR, 1);
+        if (sems_counter[i] == SEM_FAILED)
+        {
+            perror("sem_open error");
+            exit(1);
+        }
+    }
+}
+
+//create semaphores if you are program2
+void create_semaphres2()
+{
+    //open quit procedure sem
+    sem_quit = sem_open(semname_quit, 0);
+    if (sem_quit == SEM_FAILED)
+    {
+        perror("sem_open error: ");
+        exit(1);
+    }
+
+    //open counter semaphores
+    for (int i = 1; i < 3; i++)
+    {
+        sems_counter[i] = sem_open(semnames_counter[i], 0);
+        if (sems_counter[i] == SEM_FAILED)
+        {
+            perror("sem_open error: ");
+            exit(1);
+        }
+    }
+}
+void sem_cleanup()
+{
+    if(i_am_last == false)
+    {
+        //close the semaphores
+        if (sem_close(sem_quit) == -1)
+        {
+            perror("sem close");
+        }
+        free(sem_quit);
+        for (int i = 1; i < 3; i++)
+        {
+            if (sem_close(sems_counter[i]) == -1)
+            {
+                perror("sem_counter close");
+            }
+            free(sems_counter[i]);
+        }
+
+//      if (sem_unlink(semname) == -1)
+//      {
+//          perror("sem_unlink");
+//      }
+    }
+    else
+    {
+       sem_destroy(sem_quit);
+       sem_destroy(sems_counter[1]);
+       sem_destroy(sems_counter[2]);
+    }
+}
+
 int main()
 {
-    void create_counter_files();
+    create_counter_files();
     my_pid = getpid();
     printf("My pid is: %d\n", my_pid);
 
@@ -229,24 +315,13 @@ int main()
     {
         printf("Another instance is running\n");
         make_fifos();
-        //i am second - open existing semaphore
-        sem = sem_open(semname, 0);
-        if (sem == SEM_FAILED)
-        {
-            perror("sem_open error: ");
-            exit(1);
-        }
+        //i am second - open existing semaphores
+        create_semaphres2();
     }
     else
     {
-        //i am first - create semaphore
-        sem_unlink(semname);
-        sem = sem_open(semname, O_CREAT | O_EXCL, S_IRUSR|S_IWUSR, 1);
-        if (sem == SEM_FAILED)
-        {
-            perror("sem_open error");
-            exit(1);
-        }
+        //i am first - create semaphores
+        create_semaphores1();
     }
 
     introduce();
@@ -254,24 +329,7 @@ int main()
     create_threads();
     join_threads();
     printf(BLUE"\nQuiting the program...\n"RESET);
-    sem_post(sem);
-
-    //sem clean_up
-    if(i_am_last == false)
-    {
-        //close the semaphore
-        if (sem_close(sem) == -1)
-        {
-            perror("sem close");
-        }
-//        if (sem_unlink(semname) == -1)
-//        {
-//            perror("sem_unlink");
-//        }
-        free(sem);
-    }
-    else
-    {
-       sem_destroy(sem);
-    }
+    sem_post(sem_quit);
+    sem_cleanup();
 }
+

@@ -4,8 +4,10 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include "config.h"
+#include <semaphore.h>
 
 extern const char * const COUNTER_FILENAMES[3];
+extern sem_t *sems_counter[3];
 
 double drand(void); 
 int random_range(int pocz, int kon);
