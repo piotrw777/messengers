@@ -20,8 +20,8 @@ double drand(void)
 
 int random_range(int pocz, int kon)
 {
-     int k = (kon - pocz + 1) * drand() + pocz;
-     return k;
+    int k = (kon - pocz + 1) * drand() + pocz;
+    return k;
 }
 
 bool is_empty(const char *filename)
@@ -84,7 +84,7 @@ void create_random_message()
         }
         else
         {
-             message[i] = random_letter();
+            message[i] = random_letter();
         }
         i++;
     }
@@ -117,11 +117,6 @@ unsigned long long get_timestamp()
 }
 
 
-//void create_timestamp()
-//{
-//    sprintf(timestamp_str, "%018lli", get_timestamp());
-//}
-
 void create_timestamp(char *dest, char mode)
 {
     //get current date
@@ -138,24 +133,83 @@ void create_timestamp(char *dest, char mode)
 
 int nsleep(long nanoseconds)
 {
-   struct timespec req, rem;
+    struct timespec req, rem;
 
-//   if(miliseconds > 999)
-//   {
-//        req.tv_sec = (int)(miliseconds / 1000);                            /* Must be Non-Negative */
-//        req.tv_nsec = (miliseconds - ((long)req.tv_sec * 1000)) * 1000000; /* Must be in range of 0 to 999999999 */
-//   }
-//   else
-//   {
-//        req.tv_sec = 0;                         /* Must be Non-Negative */
-//        req.tv_nsec = miliseconds * 1000000;    /* Must be in range of 0 to 999999999 */
-//   }
-   req.tv_sec = 0;
-   req.tv_nsec = nanoseconds;
+    //   if(miliseconds > 999)
+    //   {
+    //        req.tv_sec = (int)(miliseconds / 1000);                            /* Must be Non-Negative */
+    //        req.tv_nsec = (miliseconds - ((long)req.tv_sec * 1000)) * 1000000; /* Must be in range of 0 to 999999999 */
+    //   }
+    //   else
+    //   {
+    //        req.tv_sec = 0;                         /* Must be Non-Negative */
+    //        req.tv_nsec = miliseconds * 1000000;    /* Must be in range of 0 to 999999999 */
+    //   }
+    req.tv_sec = 0;
+    req.tv_nsec = nanoseconds;
 
-   return nanosleep(&req , &rem);
+    return nanosleep(&req , &rem);
+}
+bool is_friend_running()
+{
+    int sleep_time = 50000000;
+    unsigned long k;
+    unsigned long before, after;
+    int friend_nr = 3 - prog_nr;
+
+    FILE *file;
+    while(true)
+    {
+        //open the counter file of the friend if it's not opened
+        file = fopen(COUNTER_FILENAMES[friend_nr], "rb");
+        if (file == NULL)
+        {
+            //fprintf(stderr, "File %s not opened\n",COUNTER_FILENAMES[friend_nr]);
+            nsleep(sleep_time);
+            continue;
+        }
+        //read value before
+        if (!fread(&k, sizeof(k), 1, file))
+        {
+            //fprintf(stderr, "Error reading from file (check_friend)\n");
+            nsleep(sleep_time);
+            continue;
+        }
+        fclose(file);
+        before = k;
+        //wait
+        nsleep(sleep_time);
+
+        file = fopen(COUNTER_FILENAMES[friend_nr], "rb");
+        if (file == NULL)
+        {
+            fprintf(stderr, "File %s not opened\n",COUNTER_FILENAMES[friend_nr]);
+            nsleep(sleep_time);
+            continue;
+        }
+        //read value after
+        if (!fread(&k, sizeof(k), 1, file))
+        {
+            //fprintf(stderr, "Error reading from file (check_friend)\n");
+            continue;
+        }
+
+        fclose(file);
+        after = k;
+
+        if (before != after)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+    return false;
 }
 
+//determine the number of the program
 bool other_instance_running(int *prog)
 {
     int sleep_time = 50000000;
@@ -297,3 +351,112 @@ bool other_instance_running(int *prog)
         }
     }
 }
+
+//bool other_instance_running(int *prog)
+//{
+//    int sleep_time = 50000000;
+//    unsigned long  k1, k2;
+//    unsigned long  before1, after1;
+//    unsigned long  before2, after2;
+
+//    //opening the files
+//    FILE *file1 = fopen(COUNTER_FILENAME1, "rb");
+//    FILE *file2 = fopen(COUNTER_FILENAME2, "rb");
+
+//    //counter files does not exist
+//    if (file1 == NULL || file2 == NULL)
+//    {
+//        fprintf(stderr, "Counter files not created\n");
+//        exit(2);
+//    }
+
+//    while (true)
+//    {
+//        //read values for the first time
+//        rewind(file1);
+//        if (!fread(&k1, sizeof(k1), 1, file1))
+//        {
+//            fprintf(stderr, "Error reading from file (other_instance_running)\n");
+//            continue;
+//        }
+//        rewind(file2);
+//        if (!fread(&k2, sizeof(k2), 1, file2))
+//        {
+//            fprintf(stderr, "Error reading from file (other_instance_running)\n");
+//            continue;
+//        }
+
+//        before1 = k1;
+//        before2 = k2;
+
+//        nsleep(sleep_time);
+
+//        //read values again
+//        rewind(file1);
+//        if (!fread(&k1, sizeof(k1), 1, file1))
+//        {
+//            fprintf(stderr, "Error reading from file (other_instance_running)\n");
+//            continue;
+//        }
+//        rewind(file2);
+//        if (!fread(&k2, sizeof(k2), 1, file2))
+//        {
+//            fprintf(stderr, "Error reading from file (other_instance_running)\n");
+//            continue;
+//        }
+
+//        after1 = k1;
+//        after2 = k2;
+
+//        if (before1 != after1)
+//        {
+//            *prog = 2;
+//            fclose(file1);
+//            fclose(file2);
+//            return true;
+//        }
+//        if (before2 != after2)
+//        {
+//            *prog = 1;
+//            fclose(file1);
+//            fclose(file2);
+//            return true;
+//        }
+//        else
+//        {
+//            *prog = 1;
+//            fclose(file1);
+//            fclose(file2);
+//            return false;
+//        }
+//    }
+//}
+
+//#include <fcntl.h>
+//#include <errno.h>
+
+//bool CheckForAnotherInstance()
+//{
+//    int fd;
+//    struct flock fl;
+//    fd = open("LOCK_FILE_NAME", O_RDWR);
+//    if(fd == -1)
+//    {
+//        return false;
+//    }
+//    fl.l_type   = F_WRLCK;
+//    fl.l_whence = SEEK_SET;
+//    fl.l_start  = 0;
+//    fl.l_len    = 0;
+//    fl.l_pid    = getpid();
+//    // try to create a file lock
+//    if( fcntl(fd, F_SETLK, &fl) == -1)
+//    {
+//        // we failed to create a file lock, meaning it's already locked //
+//        if( errno == EACCES || errno == EAGAIN)
+//        {
+//            return true;
+//        }
+//    }
+//    return false;
+//}

@@ -2,7 +2,7 @@
 #include<stdlib.h>
 #include "list.h"
 #include <string.h>
-
+#include <stdbool.h>
 
 int size_of_node = sizeof(node);
 
@@ -15,7 +15,7 @@ List * create_list(void) {
     return nowa_lista;
 }
 
-void append_to_list(List * list, char *str) {
+int append_to_list(List * list, char *str) {
     //jeśli lista jest pusta
     if( list -> head == NULL ) {
         list -> head = malloc( size_of_node );
@@ -28,7 +28,7 @@ void append_to_list(List * list, char *str) {
         if (tmp == NULL)
         {
             fprintf(stderr, "Memory error\n");
-            exit(1);
+            return -1;
         }
         strcpy(tmp, str);
         list -> head -> elem = tmp;
@@ -43,13 +43,14 @@ void append_to_list(List * list, char *str) {
         if (tmp == NULL)
         {
             fprintf(stderr, "Memory error\n");
-            exit(1);
+            return -1;
         }
         strcpy(tmp, str);
         wsk_node -> next -> elem = tmp;
         list -> tail = wsk_node -> next;
         (list -> length)++;
     }
+    return 0;
 }
 
 void clear_list(List * list) {
